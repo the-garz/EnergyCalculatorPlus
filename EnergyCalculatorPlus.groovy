@@ -183,10 +183,7 @@ void updateCost() {
         logDebug "Table Refresh: New cost for ${dev.displayName} is ${state.energies["$dev.id"].cost}"
 		if(thisVar) setGlobalVar(thisVar, state.energies["$dev.id"].cost)
 	}
-
-	logDebug "Device update complete; moving to total."
 	String thatVar = state.totalVar
-	logDebug "thatVar is ${thatVar}"
 	if(symbol) {totalCost = symbol+totalCost.toString()} else {totalCost = totalCost.toString()}
 	state.totalCost = totalCost
 	state.totalEnergy = totalEnergy
