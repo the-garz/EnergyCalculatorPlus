@@ -35,7 +35,7 @@ def mainPage() {
 	if(state.energiesList == null) state.energiesList = []
 	dynamicPage(name: "mainPage", uninstall: true, install: true) {
 		section("<b>App Name</b>",hideable: true, hidden: true) {
-            label title: "<b>***Enter a name for this child app.***</b>", required:true, width: 4
+            label title: "<b>***Enter a name for this app.***</b>", required:true, width: 4
         }
         section("<b>Energy Rate Information</b>",hideable: true, hidden: true) {
 			input "energyRate", "string", title: "What is your energy rate per kWh?", required: false, default: 1, width: 4, submitOnChange: true
