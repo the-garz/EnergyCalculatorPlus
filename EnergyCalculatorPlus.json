@@ -1,9 +1,11 @@
 {
   "packageName": "Energy Calculator Plus",
   "author": "Ryan Elliott",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "minimumHEVersion": "0.0",
+  "communityLink": "https://community.hubitat.com/t/release-energy-calculator-plus/108660",
   "dateReleased": "2022-12-27",
+  "releaseNotes": "Substantial updates to the UI. Created a separate page for setting variable links. Added historical tracking capabilities.\nFor further information or to report issues/request features, please see the community thread https://community.hubitat.com/t/release-energy-calculator-plus/108660",
   "apps": [
     {
       "id": "14fc8a1e-1b27-4cc0-994c-8c549e066e06",
