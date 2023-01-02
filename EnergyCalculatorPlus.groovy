@@ -14,6 +14,7 @@
  *
  * v1.0		RLE		Creation
  * v1.1		RLE		Substantial updates to the UI along with functionality. 
+ * v1.2		Just testing publishing from vscode
  */
  
 definition(
@@ -37,7 +38,7 @@ def mainPage() {
 	if(state.energiesList == null) state.energiesList = []
 	dynamicPage(name: "mainPage", uninstall: true, install: true) {
 		section("<b>App Name</b>",hideable: true, hidden: true) {
-            label title: "<b>***Enter a name for this app.***</b>", required:true, width: 4
+            label title: "<b>Enter a name for this app.</b>", required:true, width: 4
         }
 
 		section("<b>Device Selection</b>",hideable: true, hidden: true) {
@@ -208,8 +209,8 @@ String displayTable() {
 		thisWeekCost = device.thisWeekCost
 		thisMonthEnergy = device.thisMonthEnergy
 		thisMonthCost = device.thisMonthCost
-		lastWeekEnergy = device.lastWeekEnergy
-		lastMonthEnergy = device.lastMonthEnergy
+		lastWeekEnergy = device.lastWeekEnergy ?: 0
+		lastMonthEnergy = device.lastMonthEnergy ?: 0
 		String devLink = "<a href='/device/edit/$dev.id' target='_blank' title='Open Device Page for $dev'>$dev"
 		str += "<tr style='color:black'><td style='border-right:2px solid black'>$devLink</td>" +
 			"<td style='color:#4c2c92'><b>$todayEnergy</b></td>" +
