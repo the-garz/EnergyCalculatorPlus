@@ -540,7 +540,7 @@ void updateDeviceEnergy() {
 		energyChange = currentEnergy - lastEnergy
 		if(energyChange != 0) logTrace "Energy change for ${dev} is ${energyChange}"
 		String thisVar = device.var
-		BigDecimal start = device.dayStart ?: dev.currentEnergy
+		BigDecimal start = device.dayStart ?: 0
 		BigDecimal thisWeek = device.thisWeekEnergy ?: 0
 		BigDecimal thisWeekStart = device.weekStart ?: 0
 		BigDecimal thisMonth = device.thisMonthEnergy ?: 0
