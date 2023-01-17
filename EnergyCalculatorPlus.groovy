@@ -14,7 +14,8 @@
  *
  * v0.1		RLE		Creation
  * v0.2		RLE		Substantial updates to the UI along with functionality. 
- * v1.0		RLE		Further UI overhauls. Added rate scheduling.
+ * v0.3		RLE		Further UI overhauls. Added rate scheduling.
+ * v0.3.5	RLE		Squashing bugs around variable types. Fixed an issue where state variables were not being populated until the app was opened the first time after installation.
  */
  
 definition(
@@ -45,7 +46,12 @@ def mainPage() {
 
 		section(getFormat("header","<b>Device Selection</b>"),hideable: true, hidden: true) {
 			input "energies", "capability.energyMeter", title: getFormat("important","Select Energy Devices to Measure Cost"), multiple: true, submitOnChange: true, width: 4
-			
+			energies.each {dev ->
+					if(!state.energies["$dev.id"]) {
+						state.energies["$dev.id"] = [todayEnergy: 0, dayStart: dev.currentEnergy ?: 0, lastEnergy: dev.currentEnergy ?: 0, var: "",thisWeekEnergy: 0,thisMonthEnergy: 0,lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0, thisMonthCost: 0]
+						state.energiesList += dev.id
+					}
+				}
 		}
 		if(app.getInstallationState() == "COMPLETE") {
 			section{
@@ -54,12 +60,7 @@ def mainPage() {
 			}
 
 			section{
-				energies.each {dev ->
-					if(!state.energies["$dev.id"]) {
-						state.energies["$dev.id"] = [todayEnergy: 0, dayStart: dev.currentEnergy, lastEnergy: dev.currentEnergy, var: "",thisWeekEnergy: 0,thisMonthEnergy: 0,lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0, thisMonthCost: 0]
-						state.energiesList += dev.id
-					}
-				}
+				
 				if(energies) {
 					if(energies.id.sort() != state.energiesList.sort()) { //something was removed
 						state.energiesList = energies.id
@@ -71,7 +72,7 @@ def mainPage() {
 					if(energyRate) {
 						String pattern = /(\d*[0-9]\d*(\.\d+)?|0*\.\d*[0-9]\d*)/
 						java.util.regex.Matcher matching = energyRate =~ pattern
-						BigDecimal energyRate = matching[0][1].toBigDecimal()
+						energyRate = matching[0][1].toDouble()
 						state.energyRate = energyRate
 						app.removeSetting("energyRate")
 					}
@@ -275,7 +276,7 @@ def pageSetRateSchedule() {
 					if(rateCost) {
 						String pattern = /(\d*[0-9]\d*(\.\d+)?|0*\.\d*[0-9]\d*)/
 						java.util.regex.Matcher matching = rateCost =~ pattern
-						BigDecimal rateCost = matching[0][1].toBigDecimal()
+						rateCost = matching[0][1].toDouble()
 						state.schedules[state.addRateAmount].rateCost = rateCost
 						state.remove("addRateAmount")
 						app.removeSetting("rateCost")
@@ -292,7 +293,7 @@ def pageSetRateSchedule() {
 				if(energyRateOverride) {
 					String pattern = /(\d*[0-9]\d*(\.\d+)?|0*\.\d*[0-9]\d*)/
 					java.util.regex.Matcher matching = energyRateOverride =~ pattern
-					BigDecimal energyRateOverride = matching[0][1].toBigDecimal()
+					energyRateOverride = matching[0][1].toDouble()
 					log.warn "Manually overriding current rate of ${state.energyRate} with ${energyRateOverride}"
 					state.energyRate = energyRateOverride
 					app.removeSetting("energyRateOverride")
@@ -328,17 +329,19 @@ String displayTable() {
 		device = state.energies["$dev.id"]
 
 		//Get energy values for each device.
-		todayEnergy = device.todayEnergy
-		thisWeekEnergy = device.thisWeekEnergy
-		thisMonthEnergy = device.thisMonthEnergy
-		lastWeekEnergy = device.lastWeekEnergy ?: 0
-		lastMonthEnergy = device.lastMonthEnergy ?: 0
+		todayEnergy = device.todayEnergy.toDouble().round(3)
+		thisWeekEnergy = device.thisWeekEnergy.toDouble().round(3)
+		thisMonthEnergy = device.thisMonthEnergy.toDouble().round(3)
+		// lastWeekEnergy = device.lastWeekEnergy ?: 0
+		lastWeekEnergy = device.lastWeekEnergy.toDouble().round(3)
+		// lastMonthEnergy = device.lastMonthEnergy ?: 0
+		lastMonthEnergy = device.lastMonthEnergy.toDouble().round(3)
 
 		//Get cost values, round, and add symbol
 
-		todayCost = device.todayCost.setScale(2, BigDecimal.ROUND_HALF_DOWN)
-		thisWeekCost = device.thisWeekCost.setScale(2, BigDecimal.ROUND_HALF_DOWN)
-		thisMonthCost = device.thisMonthCost.setScale(2, BigDecimal.ROUND_HALF_DOWN)
+		todayCost = device.todayCost.toDouble().round(2)
+		thisWeekCost = device.thisWeekCost.toDouble().round(2)
+		thisMonthCost = device.thisMonthCost.toDouble().round(2)
 
 		if(symbol) {todayCost = symbol+todayCost.toString()}
 		if(symbol) {thisWeekCost = symbol+thisWeekCost.toString()}
@@ -357,16 +360,18 @@ String displayTable() {
 			"<td style='color:#5a8200'><b>$lastMonthEnergy</b></td></tr>"
 	}
 	//Get total energy values
-	todayTotalEnergy = state.todayTotalEnergy
-	thisWeekTotal = state.thisWeekTotal
-	thisMonthTotal = state.thisMonthTotal
-	lastWeekTotal = state.lastWeekTotal ?: 0
+	todayTotalEnergy = state.todayTotalEnergy.toDouble().round(3)
+	thisWeekTotal = state.thisWeekTotal.toDouble().round(3)
+	thisMonthTotal = state.thisMonthTotal.toDouble().round(3)
+	lastWeekTotal = state.lastWeekTotal ?: 0 
+	lastWeekTotal = lastWeekTotal.toDouble().round(3) ?: 0
 	lastMonthTotal = state.lastMonthTotal ?: 0
+	lastMonthTotal = lastMonthTotal.toDouble().round(3) ?: 0
 
 	//Get cost values, round, and add symbol
-	totalCostToday = state.totalCostToday.setScale(2, BigDecimal.ROUND_HALF_DOWN)
-	totalCostWeek = state.totalCostWeek.setScale(2, BigDecimal.ROUND_HALF_DOWN)
-	totalCostMonth = state.totalCostMonth.setScale(2, BigDecimal.ROUND_HALF_DOWN)
+	totalCostToday = state.totalCostToday.toDouble().round(2)
+	totalCostWeek = state.totalCostWeek.toDouble().round(2)
+	totalCostMonth = state.totalCostMonth.toDouble().round(2)
 
 	if(symbol) {totalCostToday = symbol+totalCostToday.toString()}
 	if(symbol) {totalCostWeek = symbol+totalCostWeek.toString()} 
@@ -532,35 +537,49 @@ void updateDeviceEnergy() {
 	def thisMonthTotal = 0
 	energies.each {dev ->
 		device = state.energies["$dev.id"]
+
+		String thisVar = device.var ?: ""
+		start = device.dayStart ?: 0
+		logTrace "${dev} day start is ${device.dayStart}"
+		thisWeek = device.thisWeekEnergy ?: 0
+		logTrace "${dev} thisWeekEnergy is ${device.thisWeekEnergy}"
+		thisWeekStart = device.weekStart ?: 0
+		logTrace "${dev} weekStart is ${device.weekStart}"
+		thisMonth = device.thisMonthEnergy ?: 0
+		// logTrace "${dev} thisMonthEnergy is ${device.thisMonthEnergy}"
+		thisMonthStart = device.monthStart ?: 0
+		// logTrace "${dev} monthStart is ${device.monthStart}"
 		currentEnergy = dev.currentEnergy ?: 0
-		lastEnergy = device.lastEnergy ?: currentEnergy
+		logTrace "${dev} currentEnergy is ${dev.currentEnergy}"
+
+		energyCheck = currentEnergy - start
+		logTrace "${dev} energyCheck is ${energyCheck}"
+		if(energyCheck < 0) {
+			log.info "Energy for ${dev} is less than day start; energy was reset; setting day start and last energy to 0"
+			device.dayStart = 0
+			device.lastEnergy = 0
+			todayEnergy = currentEnergy - device.dayStart
+		} else {todayEnergy = energyCheck}
+		logTrace "${dev} energy today is ${todayEnergy}"
+		
+		lastEnergy = device.lastEnergy
+		logTrace "${dev} lastEnergy is ${lastEnergy}"
 		if (lastEnergy != currentEnergy) {
 			logTrace "${dev} changed from ${lastEnergy} to ${currentEnergy}"
 		}
 		energyChange = currentEnergy - lastEnergy
-		if(energyChange != 0) logTrace "Energy change for ${dev} is ${energyChange}"
-		String thisVar = device.var
-		BigDecimal start = device.dayStart ?: 0
-		BigDecimal thisWeek = device.thisWeekEnergy ?: 0
-		BigDecimal thisWeekStart = device.weekStart ?: 0
-		BigDecimal thisMonth = device.thisMonthEnergy ?: 0
-		BigDecimal thisMonthStart = device.monthStart ?: 0
-		energyCheck = currentEnergy - start
-		if(energyCheck < 0) {
-			log.info "Energy for ${dev} is less than day start; energy was reset; setting day start to 0"
-			device.dayStart = 0
-			todayEnergy = currentEnergy - device.dayStart
-		} else {todayEnergy = energyCheck}
-		logTrace "${dev} energy today is ${todayEnergy}"
+		logTrace "Energy change for ${dev} is ${energyChange}"
+
 		device.lastEnergy = currentEnergy
 		device.energyChange = energyChange
 		device.todayEnergy = todayEnergy
-		todayTotalEnergy = todayTotalEnergy + todayEnergy
+
+		todayTotalEnergy += todayEnergy
 		thisWeek = thisWeekStart + todayEnergy
-		thisWeekTotal = thisWeekTotal + thisWeek
+		thisWeekTotal += thisWeek
 		device.thisWeekEnergy = thisWeek
 		thisMonth = thisMonthStart + todayEnergy
-		thisMonthTotal = thisMonthTotal + thisMonth
+		thisMonthTotal += thisMonth
 		device.thisMonthEnergy = thisMonth
 	}
 	state.todayTotalEnergy = todayTotalEnergy
@@ -575,19 +594,19 @@ void updateCost() {
 	def totalCostToday = 0
 	def totalCostWeek = 0
 	def totalCostMonth = 0
-	tempRate = new BigDecimal(state.energyRate)
+	tempRate = state.energyRate
 	logTrace "Current rate is ${tempRate}"
 	energies.each {dev ->
 		device = state.energies["$dev.id"]
 
-		tempTodayCost = new BigDecimal(device.todayCost)
+		tempTodayCost = device.todayCost
 		tempWeekCost = device.thisWeekCost
 		tempMonthCost = device.thisMonthCost
 		
 		thisWeek = device.thisWeekEnergy
 		thisMonth = device.thisMonthEnergy
 
-		tempEnergy = new BigDecimal(device.energyChange)
+		tempEnergy = device.energyChange
 		
 		costCheck = (tempEnergy*tempRate)
 		if(costCheck >= 0) {
@@ -595,8 +614,9 @@ void updateCost() {
 			} else {
 				tempCost = 0
 				log.info "Cost change for ${dev} is a negative; energy was reset"}
-		if(tempCost > 0) logTrace "Price change for ${dev} is ${tempEnergy} * ${tempRate} = ${tempCost}"
-		
+		if(tempCost > 0) {
+			logTrace "Price change for ${dev} is ${tempEnergy} * ${tempRate} = ${tempCost}"
+		}
 		tempTodayCost += tempCost
 		tempWeekCost += tempCost
 		tempMonthCost += tempCost
@@ -606,21 +626,23 @@ void updateCost() {
 		device.todayCost = tempTodayCost
 		device.thisWeekCost = tempWeekCost 
 		device.thisMonthCost = tempMonthCost 
-		logTrace "New cost for ${dev.displayName} is ${device.todayCost}"
+		if(tempCost > 0) {
+			logTrace "New cost for ${dev.displayName} is ${tempTodayCost}"
+		}
 		//Set variables for devices
 		todayVar = device.todayVar
 		weekVar = device.weekVar
 		monthVar = device.monthVar
 		if(todayVar) {
-			tempTodayCost = tempTodayCost.setScale(2, BigDecimal.ROUND_HALF_DOWN)
+			tempTodayCost = tempTodayCost.toDouble().round(2)
 			if(symbol) {setGlobalVar(todayVar, symbol+tempTodayCost.toString())} else {setGlobalVar(todayVar,tempTodayCost.toString())}
 		}
 		if(weekVar) {
-			tempWeekCost = tempWeekCost.setScale(2, BigDecimal.ROUND_HALF_DOWN)
+			tempWeekCost = tempWeekCost.toDouble().round(2)
 			if(symbol) {setGlobalVar(weekVar, symbol+tempWeekCost.toString())} else {setGlobalVar(weekVar,tempWeekCost.toString())}
 		}
 		if(monthVar) {
-			tempMonthCost = tempMonthCost.setScale(2, BigDecimal.ROUND_HALF_DOWN)
+			tempMonthCost = tempMonthCost.toDouble().round(2)
 			if(symbol) {setGlobalVar(monthVar, symbol+tempMonthCost.toString())} else {setGlobalVar(monthVar,tempMonthCost.toString())}
 		}
 	}
@@ -633,15 +655,15 @@ void updateCost() {
 	monthTotalVar = state.monthTotalVar
 
 	if(todayTotalVar) {
-		totalCostToday = totalCostToday.setScale(2, BigDecimal.ROUND_HALF_DOWN)
+		totalCostToday = totalCostToday.toDouble().round(2)
 		if(symbol) {setGlobalVar(todayTotalVar, symbol+totalCostToday.toString())} else {setGlobalVar(todayTotalVar,totalCostToday.toString())}
 	}
 	if(weekTotalVar) {
-		totalCostWeek = totalCostWeek.setScale(2, BigDecimal.ROUND_HALF_DOWN)
+		totalCostWeek = totalCostWeek.toDouble().round(2)
 		if(symbol) {setGlobalVar(weekTotalVar, symbol+totalCostWeek.toString())} else {setGlobalVar(weekTotalVar,totalCostWeek.toString())}
 	}
 	if(monthTotalVar) {
-		totalCostMonth = totalCostMonth.setScale(2, BigDecimal.ROUND_HALF_DOWN)
+		totalCostMonth = totalCostMonth.toDouble().round(2)
 		if(symbol) {setGlobalVar(monthTotalVar, symbol+totalCostMonth.toString())} else {setGlobalVar(monthTotalVar,totalCostMonth.toString())}
 	}
 	logDebug "Cost update done"
@@ -721,17 +743,17 @@ def resetForTest(yes) {
 			
 			
 			java.util.regex.Matcher matching = todayCost =~ pattern
-			BigDecimal newTodayCost = matching[0][1].toBigDecimal()
+			newTodayCost = matching[0][1]
 			log.warn "${dev} converted today value of ${newTodayCost}"
 			device.todayCost = newTodayCost
 
 			java.util.regex.Matcher matchingWeek = thisWeekCost =~ pattern
-			BigDecimal newThisWeekCost = matchingWeek[0][1].toBigDecimal()
+			newThisWeekCost = matchingWeek[0][1]
 			log.warn "${dev} converted this week value of ${newThisWeekCost}"
 			device.thisWeekCost = newThisWeekCost
 
 			java.util.regex.Matcher matchingMonth = thisMonthCost =~ pattern
-			BigDecimal newthisMonthCost = matchingMonth[0][1].toBigDecimal()
+			newthisMonthCost = matchingMonth[0][1]
 			log.warn "${dev} converted this month value of ${newthisMonthCost}"
 			device.thisMonthCost = newthisMonthCost
 
