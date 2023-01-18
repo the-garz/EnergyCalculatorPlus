@@ -17,6 +17,7 @@
  * v0.3		RLE		Further UI overhauls. Added rate scheduling.
  * v0.3.5	RLE		Squashing bugs around variable types. Fixed an issue where state variables were not being populated until the app was opened the first time after installation.
  * v0.3.6	RLE		Added an option to select which day of the month that reset happens. Moved enum lists to use variable for the options.
+ * v0.3.7	RLE		Limited day of month selection to 30 to prevent PICNIC errors.
  */
  
 definition(
@@ -201,7 +202,7 @@ def pageSelectVariables() {
 }
 
 def pageSetRateSchedule() {
-	dateList = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+	dateList = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
 	monthList = ["ALL","JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
 	hoursList = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
 	dayList = ["ALL","SUN","MON","TUE","WED","THU","FRI","SAT"]

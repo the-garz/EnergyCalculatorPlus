@@ -1,11 +1,11 @@
 {
   "packageName": "Energy Cost Calculator",
   "author": "Ryan Elliott",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "minimumHEVersion": "0.0",
   "communityLink": "https://community.hubitat.com/t/release-energy-calculator-plus/108660",
   "dateReleased": "2022-12-27",
-  "releaseNotes": "v0.3.0 - More UI updates. Added rate scheduling.\nv0.3.5 - Squashing bugs around variable types. Fixed an issue where state variables were not being populated until the app was opened the first time after installation.\nv0.3.6 - Added an option to set which day of the month that monthly reset will happen.\n\nFor further information or to report issues/request features, please see the community thread https://community.hubitat.com/t/release-energy-calculator-plus/108660",
+  "releaseNotes": "v0.3.0 - More UI updates. Added rate scheduling.\nv0.3.5 - Squashing bugs around variable types. Fixed an issue where state variables were not being populated until the app was opened the first time after installation.\nv0.3.7 - Added an option to set which day of the month that monthly reset will happen.\n\nFor further information or to report issues/request features, please see the community thread https://community.hubitat.com/t/release-energy-calculator-plus/108660",
   "apps": [
     {
       "id": "14fc8a1e-1b27-4cc0-994c-8c549e066e06",
