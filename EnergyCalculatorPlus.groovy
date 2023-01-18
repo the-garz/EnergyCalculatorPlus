@@ -16,6 +16,7 @@
  * v0.2		RLE		Substantial updates to the UI along with functionality. 
  * v0.3		RLE		Further UI overhauls. Added rate scheduling.
  * v0.3.5	RLE		Squashing bugs around variable types. Fixed an issue where state variables were not being populated until the app was opened the first time after installation.
+ * v0.3.6	RLE		Added an option to select which day of the month that reset happens. Moved enum lists to use variable for the options.
  */
  
 definition(
@@ -200,6 +201,11 @@ def pageSelectVariables() {
 }
 
 def pageSetRateSchedule() {
+	dateList = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+	monthList = ["ALL","JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
+	hoursList = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
+	dayList = ["ALL","SUN","MON","TUE","WED","THU","FRI","SAT"]
+
 	dynamicPage(name: "pageSetRateSchedule",title:getFormat("header","<b>Set a Rate Schedule or Static Rate</b>"), uninstall: false, install: false, nextPage: "mainPage") {
 		section{
 			input "scheduleType", "bool", title: getFormat("important","Disabled: Use a static rate</br>Enabled: Use a rate schedule"), defaultValue: false, displayDuringSetup: false, required: false, width: 4, submitOnChange: true
@@ -231,7 +237,7 @@ def pageSetRateSchedule() {
 					}
 				} else if(state.newRateDay) {
 					logTrace "newRateDay is ${state.newRateDay}"
-					input "rateDayOfWeek", "enum", title: "What days of the week?", options: ["ALL","SUN","MON","TUE","WED","THU","FRI","SAT"], multiple:true, width: 4, submitOnChange: true, newLineAfter: true
+					input "rateDayOfWeek", "enum", title: "What days of the week?", options: dayList, multiple:true, width: 4, submitOnChange: true, newLineAfter: true
 					if(rateDayOfWeek) {
 						if(rateDayOfWeek.contains("ALL")) rateDayOfWeek = "ALL"
 						state.schedules[state.newRateDay].rateDayOfWeek = rateDayOfWeek
@@ -245,7 +251,7 @@ def pageSetRateSchedule() {
 					paragraph "<script>{changeSubmit(this)}</script>"
 				} else if(state.newRateTime) {
 					logTrace "newRateTime is ${state.newRateTime}"
-					input "rateTimeOfDay", "enum", title: "What is the start time?", options: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23], width: 4, submitOnChange: true, newLineAfter: true
+					input "rateTimeOfDay", "enum", title: "What is the start time?", options: hoursList, width: 4, submitOnChange: true, newLineAfter: true
 					if(rateTimeOfDay) {
 						state.schedules[state.newRateTime].rateTimeOfDay = rateTimeOfDay
 						state.remove("newRateTime")
@@ -258,7 +264,7 @@ def pageSetRateSchedule() {
 					paragraph "<script>{changeSubmit(this)}</script>"
 				} else if(state.newRateMonths) {
 					logTrace "newRateMonths is ${state.newRateMonths}"
-					input "rateMonth", "enum", title: "Which months?", options: ["ALL","JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"], multiple:true, width: 4, submitOnChange: true, newLineAfter: true
+					input "rateMonth", "enum", title: "Which months?", options: monthList, multiple:true, width: 4, submitOnChange: true, newLineAfter: true
 					if(rateMonth) {
 						if(rateMonth.contains("ALL")) rateMonth = "ALL"
 						state.schedules[state.newRateMonths].rateMonth = rateMonth
@@ -306,6 +312,9 @@ def pageSetRateSchedule() {
 		}
 		section(getFormat("important","<b>Set the Currency Symbol</b>"),hideable:true,hidden:true) {
 			input "symbol", "string", title: getFormat("important","What is your currency symbol?"),required: false, width: 4, submitOnChange: true
+		}
+		section(getFormat("important","<b>Set the Monthly Reset Day</b>"),hideable:true,hidden:true) {
+			input "monthResetDay", "enum", title: getFormat("important","What day of the month should monthly reset happen?")+getFormat("lessImportant","<br>Will be at 00:00:08 on the selected day.<br>No selection will default to the first day of the month."), options: dateList, required: false, width: 4, submitOnChange: true
 		}
 	}
 }
@@ -520,7 +529,11 @@ void initialize() {
 	if(scheduleType) rateScheduler()
 	schedule("11 0 0 * * ?",resetDaily)
 	schedule("7 0 0 ? * SUN *",resetWeekly)
-	schedule("8 0 0 1 * ? *",resetMonthly)
+	if(monthResetDay) {
+		schedule("8 0 0 ${monthResetDay} * ? *",resetMonthly)
+		} else {
+			schedule("8 0 0 1 * ? *",resetMonthly)
+			}
 	subscribe(energies, "energy", energyHandler)
 	resetForTest()
 }
@@ -770,6 +783,7 @@ def resetForTest(yes) {
 def getFormat(type, myText="") {
 	if(type == "header") return "<div style='color:#660000;font-weight: bold'>${myText}</div>"
 	if(type == "important") return "<div style='color:#32a4be'>${myText}</div>"
+	if(type == "lessImportant") return "<div style='color:green'>${myText}</div>"
 	if(type == "rateDisplay") return "<div style='color:green; text-align: center;font-weight: bold'>${myText}</div>"
 }
 
