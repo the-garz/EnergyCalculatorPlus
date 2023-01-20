@@ -18,6 +18,9 @@
  * v0.3.5	RLE		Squashing bugs around variable types. Fixed an issue where state variables were not being populated until the app was opened the first time after installation.
  * v0.3.6	RLE		Added an option to select which day of the month that reset happens. Moved enum lists to use variable for the options.
  * v0.3.7	RLE		Limited day of month selection to 30 to prevent PICNIC errors.
+ * v0.4.0	RLE		Created "Advanced Options" page. 
+ 					Added user verification prompts for rate costs over 1.
+					Added reset and recalculate options.
  */
  
 definition(
@@ -34,19 +37,22 @@ preferences {
 	page(name: "mainPage")
 	page(name: "pageSelectVariables")
 	page(name: "pageSetRateSchedule")
+	page(name: "advancedOptions")
 }
 
 def mainPage() {
     
 	if(state.energies == null) state.energies = [:]
 	if(state.energiesList == null) state.energiesList = []
-	if(!state.energyRate) state.energyRate = 1
+	if(!state.energyRate) state.energyRate = 0.1
+	if(tableResetTwo == "Yes") {nuclear()} else {app.removeSetting("tableResetTwo")}
+	if(costResetTwo == "Yes") {recalc()} else {app.removeSetting("costResetTwo")}
 	dynamicPage(name: "mainPage", uninstall: true, install: true) {
-		section(getFormat("header","<b>App Name</b>"),hideable: true, hidden: true) {
-            label title: getFormat("important","<b>Enter a name for this app.</b>"), required:true, width: 4, submitOnChange: true
+		section(getFormat("header","App Name"),hideable: true, hidden: true) {
+            label title: getFormat("important","Enter a name for this app."), required:true, width: 4, submitOnChange: true
         }
 
-		section(getFormat("header","<b>Device Selection</b>"),hideable: true, hidden: true) {
+		section(getFormat("header","Device Selection"),hideable: true, hidden: true) {
 			input "energies", "capability.energyMeter", title: getFormat("important","Select Energy Devices to Measure Cost"), multiple: true, submitOnChange: true, width: 4
 			energies.each {dev ->
 					if(!state.energies["$dev.id"]) {
@@ -57,8 +63,8 @@ def mainPage() {
 		}
 		if(app.getInstallationState() == "COMPLETE") {
 			section{
-				href(name: "hrefSetRateSchedule", title: getFormat("important","Click here to update the rate information"),description: "", page: "pageSetRateSchedule", width:4,newLineAfter:true)
-				href(name: "hrefSelectVariables", title: getFormat("important","Click here to add and/or remove variable links"),description: "", page: "pageSelectVariables", width:4)
+				href(name: "hrefSetRateSchedule", title: getFormat("importantBold","Click here to update the rate information"),description: "", page: "pageSetRateSchedule", width:4,newLineAfter:true)
+				href(name: "hrefSelectVariables", title: getFormat("importantBold","Click here to add and/or remove variable links"),description: "", page: "pageSelectVariables", width:4)
 			}
 
 			section{
@@ -71,25 +77,21 @@ def mainPage() {
 						state.energies = newState
 					}
 					updated()
-					if(energyRate) {
-						String pattern = /(\d*[0-9]\d*(\.\d+)?|0*\.\d*[0-9]\d*)/
-						java.util.regex.Matcher matching = energyRate =~ pattern
-						energyRate = matching[0][1].toDouble()
-						state.energyRate = energyRate
-						app.removeSetting("energyRate")
-					}
-					newEnergy = state.energyRate
+
+					newEnergy = new BigDecimal(state.energyRate).setScale(2,BigDecimal.ROUND_HALF_UP)
 					if(symbol) {rateDisplayFormat = symbol+newEnergy} else {rateDisplayFormat = newEnergy}
 					paragraph getFormat("rateDisplay","Current Pricing is ${rateDisplayFormat} per KWH")
+
 					paragraph displayTable()
+
 					input "refresh", "button", title: "Refresh Table", width: 2
 					paragraph ""
-					input "debugOutput", "bool", title: "Enable debug logging?", defaultValue: false, displayDuringSetup: false, required: false, width: 2
-					input "traceOutput", "bool", title: "Enable trace logging?", defaultValue: false, displayDuringSetup: false, required: false, width: 2
+					
+					href(name: "hrefAdvancedOptions", title: getFormat("importantBold","Click here to access advanced options/utilities"),description: "", page: "advancedOptions", width:4,newLineAfter:true)
 				}
 			}
 		} else {
-			section(getFormat("header","<b>CLICK DONE TO INSTALL APP AFTER SELECTING DEVICES</b>")) {
+			section(getFormat("header","CLICK DONE TO INSTALL APP AFTER SELECTING DEVICES")) {
 				paragraph ""
 			}
 		}
@@ -99,9 +101,9 @@ def mainPage() {
 def pageSelectVariables() {
 	logTrace "Loading variable table..."
 	dynamicPage(name: "pageSelectVariables", uninstall: false, install: false, nextPage: "mainPage") {
-		section(getFormat("header","<b>Link the Cost Value to a Hub Variable</b>")) {
+		section(getFormat("header","Link the Cost Value to a Hub Variable")) {
 			if(energies)
-					paragraph getFormat("important","<b>The selected variable MUST be of type \"String\"</b>")
+					paragraph getFormat("important","The selected variable MUST be of type \"String\"")
 					paragraph displayVariableTable()
 			if(state.newTodayVar) {
 				logTrace "newTodayVar is ${state.newTodayVar}"
@@ -202,19 +204,19 @@ def pageSelectVariables() {
 }
 
 def pageSetRateSchedule() {
-	dateList = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
+	
 	monthList = ["ALL","JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
 	hoursList = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
 	dayList = ["ALL","SUN","MON","TUE","WED","THU","FRI","SAT"]
 
-	dynamicPage(name: "pageSetRateSchedule",title:getFormat("header","<b>Set a Rate Schedule or Static Rate</b>"), uninstall: false, install: false, nextPage: "mainPage") {
+	dynamicPage(name: "pageSetRateSchedule",title:getFormat("header","Set a Rate Schedule or Static Rate"), uninstall: false, install: false, nextPage: "mainPage") {
 		section{
 			input "scheduleType", "bool", title: getFormat("important","Disabled: Use a static rate</br>Enabled: Use a rate schedule"), defaultValue: false, displayDuringSetup: false, required: false, width: 4, submitOnChange: true
 			}
 		if(scheduleType) {
 			if(state.schedules == null) state.schedules = [:]
 			if(state.schedulesList == null) state.schedulesList = []
-			section(getFormat("header","<b>Set a dynamic rate schedule below</b>")){
+			section(getFormat("header","Set a dynamic rate schedule below")){
 				paragraph displayRateTable()
 				logDebug "Schedules are ${state.schedules}"
 				if(state.addNewRateSchedule) {
@@ -279,15 +281,31 @@ def pageSetRateSchedule() {
 					paragraph "<script>{changeSubmit(this)}</script>"
 				} else if(state.addRateAmount) {
 					logTrace "addRateAmount is ${state.addRateAmount}"
-					input "rateCost", "string", title: "What is your energy rate per kWh?<br>", required: false, default:"1", width: 4, submitOnChange: true
+					if(!rateCost) input "rateCost", "string", title: "What is your energy rate per kWh?<br>", required: false, default: "0.1", width: 4, submitOnChange: true
 					if(rateCost) {
 						String pattern = /(\d*[0-9]\d*(\.\d+)?|0*\.\d*[0-9]\d*)/
 						java.util.regex.Matcher matching = rateCost =~ pattern
-						rateCost = matching[0][1].toDouble()
-						state.schedules[state.addRateAmount].rateCost = rateCost
-						state.remove("addRateAmount")
-						app.removeSetting("rateCost")
-						paragraph "<script>{changeSubmit(this)}</script>"
+						newRateCost = matching[0][1].toDouble()
+						if(newRateCost > 1) {
+							input "newRateCostCheck", "enum", title: getFormat("importantBold","Are you sure <b>*** ${newRateCost} ***</b> is correct?")+getFormat("lessImportant","<br>Entered cost is > 1"), options: ["Yes","No"], required: false, width: 4, submitOnChange: true
+							if(newRateCostCheck == "Yes") {
+								app.removeSetting("newRateCostCheck")
+								state.schedules[state.addRateAmount].rateCost = newRateCost
+								state.remove("addRateAmount")
+								app.removeSetting("rateCost")
+								paragraph "<script>{changeSubmit(this)}</script>"
+							} else if(newRateCostCheck == "No") {
+								app.removeSetting("newRateCostCheck")
+								state.remove("addRateAmount")
+								app.removeSetting("rateCost")
+								paragraph "<script>{changeSubmit(this)}</script>"
+							}
+						} else {
+							state.schedules[state.addRateAmount].rateCost = newRateCost
+							state.remove("addRateAmount")
+							app.removeSetting("rateCost")
+							paragraph "<script>{changeSubmit(this)}</script>"
+						}
 					}
 				} else if(state.remRateAmount) {
 					state.schedules[state.remRateAmount].rateCost = ""
@@ -295,7 +313,10 @@ def pageSetRateSchedule() {
 					paragraph "<script>{changeSubmit(this)}</script>"
 				}
 			}
-			section(getFormat("important","<b>Manual Override</b>"),hideable:true,hidden:true) {
+			section(getFormat("importantBold","Manual Override"),hideable:true,hidden:true) {
+				newEnergy = state.energyRate
+				if(symbol) {rateDisplayFormat = symbol+newEnergy} else {rateDisplayFormat = newEnergy}
+				paragraph getFormat("lessImportant","Current rate is ${rateDisplayFormat} per KWH")
 				input "energyRateOverride", "string", title: getFormat("important","Enter a rate here to manually override the current rate:"),required: false, width: 4, submitOnChange: true
 				if(energyRateOverride) {
 					String pattern = /(\d*[0-9]\d*(\.\d+)?|0*\.\d*[0-9]\d*)/
@@ -304,18 +325,71 @@ def pageSetRateSchedule() {
 					log.warn "Manually overriding current rate of ${state.energyRate} with ${energyRateOverride}"
 					state.energyRate = energyRateOverride
 					app.removeSetting("energyRateOverride")
+
 				}
 			} 
 		} else {
 			section{
-			input "energyRate", "string", title: getFormat("header","What is your energy rate per kWh?"), required: false, default: 1, width: 4, submitOnChange: true
+				newEnergy = state.energyRate
+				if(symbol) {rateDisplayFormat = symbol+newEnergy} else {rateDisplayFormat = newEnergy}
+				paragraph getFormat("lessImportant","Current rate is ${rateDisplayFormat} per KWH")
+
+				if(!energyRate) input "energyRate", "string", title: getFormat("header","What is your energy rate per kWh?"), required: false, default: 1, width: 4, submitOnChange: true
+				if(energyRate) {
+					String pattern = /(\d*[0-9]\d*(\.\d+)?|0*\.\d*[0-9]\d*)/
+					java.util.regex.Matcher matching = energyRate =~ pattern
+					newEnergyRate = matching[0][1].toDouble()
+					if(newEnergyRate >= 1) {
+						input "newRateCostCheck", "enum", title: getFormat("importantBold","Are you sure <b>*** ${newEnergyRate} ***</b> is correct?")+getFormat("lessImportant","<br>Entered cost is > 1"), options: ["Yes","No"], required: false, width: 4, submitOnChange: true
+						if(newRateCostCheck == "Yes") {
+							app.removeSetting("newRateCostCheck")
+							state.energyRate = newEnergyRate
+							app.removeSetting("energyRate")
+						} else if(newRateCostCheck == "No") {
+							app.removeSetting("newRateCostCheck")
+							app.removeSetting("energyRate")
+							}
+						} else {
+							state.energyRate = newEnergyRate
+							app.removeSetting("energyRate")
+							paragraph "<script>{changeSubmit(this)}</script>"
+						}
+				}
 			}
 		}
-		section(getFormat("important","<b>Set the Currency Symbol</b>"),hideable:true,hidden:true) {
+		section(getFormat("importantBold","Set the Currency Symbol"),hideable:true,hidden:true) {
 			input "symbol", "string", title: getFormat("important","What is your currency symbol?"),required: false, width: 4, submitOnChange: true
 		}
-		section(getFormat("important","<b>Set the Monthly Reset Day</b>"),hideable:true,hidden:true) {
+	}
+}
+
+def advancedOptions() {
+	dateList = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
+	dynamicPage(name: "advancedOptions",title:getFormat("header","Advanced Options and Utilities"), uninstall: false, install: false, nextPage: "mainPage") {
+		section(getFormat("importantBold","Set the Monthly Reset Day"),hideable:true,hidden:false) {
 			input "monthResetDay", "enum", title: getFormat("important","What day of the month should monthly reset happen?")+getFormat("lessImportant","<br>Will be at 00:00:08 on the selected day.<br>No selection will default to the first day of the month."), options: dateList, required: false, width: 4, submitOnChange: true
+		}
+		section(getFormat("importantBold","Recalculate Cost"),hideable:true,hidden:false) {
+			if(!costResetTwo) {
+				if(!costResetOne) input "costResetOne", "enum", title: getFormat("important","Recalculate all costs based on the current rate?")+getFormat("lessImportant","<br>Current rate is ${state.energyRate}")+getFormat("red","<br>There's no going back!"), options: ["Yes"], required: false, width: 4, submitOnChange: true
+				if(costResetOne) {
+					app.removeSetting("costResetOne")
+					input "costResetTwo", "enum", title: getFormat("importantBold","*** Are you sure? ***")+getFormat("lessImportant","<br>This selection will apply when you click the \"Next\" button.")+getFormat("red","<br>There's no going back!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
+				}
+			}
+		}
+		section(getFormat("importantBold","Table Reset Options"),hideable:true,hidden:false) {
+			if(!tableResetTwo) {
+				if(!tableResetOne) input "tableResetOne", "enum", title: getFormat("important","What do you want to reset?")+getFormat("red","<br>There's no going back!"), options: ["Everything"], required: false, width: 4, submitOnChange: true
+				if(tableResetOne) {
+					app.removeSetting("tableResetOne")
+					input "tableResetTwo", "enum", title: getFormat("importantBold","*** Are you sure? ***")+getFormat("lessImportant","<br>This selection will apply when you click the \"Next\" button.")+getFormat("red","<br>There's no going back!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
+				}
+			}
+		}
+		section(getFormat("importantBold","Logging Options"),hideable:true,hidden:false) {
+			input "debugOutput", "bool", title: "Enable debug logging?", defaultValue: false, displayDuringSetup: false, required: false, width: 2
+			input "traceOutput", "bool", title: "Enable trace logging?", defaultValue: false, displayDuringSetup: false, required: false, width: 2
 		}
 	}
 }
@@ -342,16 +416,13 @@ String displayTable() {
 		todayEnergy = device.todayEnergy.toDouble().round(3)
 		thisWeekEnergy = device.thisWeekEnergy.toDouble().round(3)
 		thisMonthEnergy = device.thisMonthEnergy.toDouble().round(3)
-		// lastWeekEnergy = device.lastWeekEnergy ?: 0
 		lastWeekEnergy = device.lastWeekEnergy.toDouble().round(3)
-		// lastMonthEnergy = device.lastMonthEnergy ?: 0
 		lastMonthEnergy = device.lastMonthEnergy.toDouble().round(3)
 
 		//Get cost values, round, and add symbol
-
-		todayCost = device.todayCost.toDouble().round(2)
-		thisWeekCost = device.thisWeekCost.toDouble().round(2)
-		thisMonthCost = device.thisMonthCost.toDouble().round(2)
+		todayCost = new BigDecimal(device.todayCost).setScale(2,BigDecimal.ROUND_HALF_UP)
+		thisWeekCost = new BigDecimal(device.thisWeekCost).setScale(2,BigDecimal.ROUND_HALF_UP)
+		thisMonthCost = new BigDecimal(device.thisMonthCost).setScale(2,BigDecimal.ROUND_HALF_UP)
 
 		if(symbol) {todayCost = symbol+todayCost.toString()}
 		if(symbol) {thisWeekCost = symbol+thisWeekCost.toString()}
@@ -379,9 +450,9 @@ String displayTable() {
 	lastMonthTotal = lastMonthTotal.toDouble().round(3) ?: 0
 
 	//Get cost values, round, and add symbol
-	totalCostToday = state.totalCostToday.toDouble().round(2)
-	totalCostWeek = state.totalCostWeek.toDouble().round(2)
-	totalCostMonth = state.totalCostMonth.toDouble().round(2)
+	totalCostToday = new BigDecimal(state.totalCostToday).setScale(2,BigDecimal.ROUND_HALF_UP)
+	totalCostWeek = new BigDecimal(state.totalCostWeek).setScale(2,BigDecimal.ROUND_HALF_UP)
+	totalCostMonth = new BigDecimal(state.totalCostMonth).setScale(2,BigDecimal.ROUND_HALF_UP)
 
 	if(symbol) {totalCostToday = symbol+totalCostToday.toString()}
 	if(symbol) {totalCostWeek = symbol+totalCostWeek.toString()} 
@@ -648,15 +719,15 @@ void updateCost() {
 		weekVar = device.weekVar
 		monthVar = device.monthVar
 		if(todayVar) {
-			tempTodayCost = tempTodayCost.toDouble().round(2)
+			tempTodayCost = new BigDecimal(tempTodayCost).setScale(2,BigDecimal.ROUND_HALF_UP)
 			if(symbol) {setGlobalVar(todayVar, symbol+tempTodayCost.toString())} else {setGlobalVar(todayVar,tempTodayCost.toString())}
 		}
 		if(weekVar) {
-			tempWeekCost = tempWeekCost.toDouble().round(2)
+			tempWeekCost = new BigDecimal(tempWeekCost).setScale(2,BigDecimal.ROUND_HALF_UP)
 			if(symbol) {setGlobalVar(weekVar, symbol+tempWeekCost.toString())} else {setGlobalVar(weekVar,tempWeekCost.toString())}
 		}
 		if(monthVar) {
-			tempMonthCost = tempMonthCost.toDouble().round(2)
+			tempMonthCost = new BigDecimal(tempMonthCost).setScale(2,BigDecimal.ROUND_HALF_UP)
 			if(symbol) {setGlobalVar(monthVar, symbol+tempMonthCost.toString())} else {setGlobalVar(monthVar,tempMonthCost.toString())}
 		}
 	}
@@ -669,15 +740,15 @@ void updateCost() {
 	monthTotalVar = state.monthTotalVar
 
 	if(todayTotalVar) {
-		totalCostToday = totalCostToday.toDouble().round(2)
+		totalCostToday = new BigDecimal(totalCostToday).setScale(2,BigDecimal.ROUND_HALF_UP)
 		if(symbol) {setGlobalVar(todayTotalVar, symbol+totalCostToday.toString())} else {setGlobalVar(todayTotalVar,totalCostToday.toString())}
 	}
 	if(weekTotalVar) {
-		totalCostWeek = totalCostWeek.toDouble().round(2)
+		totalCostWeek = new BigDecimal(totalCostWeek).setScale(2,BigDecimal.ROUND_HALF_UP)
 		if(symbol) {setGlobalVar(weekTotalVar, symbol+totalCostWeek.toString())} else {setGlobalVar(weekTotalVar,totalCostWeek.toString())}
 	}
 	if(monthTotalVar) {
-		totalCostMonth = totalCostMonth.toDouble().round(2)
+		totalCostMonth = new BigDecimal(totalCostMonth).setScale(2,BigDecimal.ROUND_HALF_UP)
 		if(symbol) {setGlobalVar(monthTotalVar, symbol+totalCostMonth.toString())} else {setGlobalVar(monthTotalVar,totalCostMonth.toString())}
 	}
 	logDebug "Cost update done"
@@ -781,8 +852,50 @@ def resetForTest(yes) {
     }
 }
 
+def nuclear() {
+	energies.each {dev ->
+	state.energies["$dev.id"] = [todayEnergy: 0, dayStart: dev.currentEnergy ?: 0, lastEnergy: dev.currentEnergy ?: 0, var: "",thisWeekEnergy: 0,thisMonthEnergy: 0,lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0, thisMonthCost: 0]
+	}
+	log.warn "It's all gone...I hope you're happy."
+	app.removeSetting("tableResetTwo")
+}
+
+def recalc() {
+	tempRate = state.energyRate
+	energies.each {dev ->
+		device = state.energies["$dev.id"]
+
+		todayEnergy = device.todayEnergy
+		thisWeek = device.thisWeekEnergy
+		thisMonth = device.thisMonthEnergy
+
+		todayCost = todayEnergy*tempRate
+		thisWeekCost = thisWeek*tempRate
+		thisMonthCost = thisMonth*tempRate
+
+		device.todayCost = todayCost
+		device.thisWeekCost = thisWeekCost 
+		device.thisMonthCost = thisMonthCost 
+	}
+
+	todayTotalEnergy = state.todayTotalEnergy
+	thisWeekTotal = state.thisWeekTotal
+	thisMonthTotal = state.thisMonthTotal
+
+	totalCostToday = todayTotalEnergy*tempRate
+	totalCostWeek = thisWeekTotal*tempRate
+	totalCostMonth = thisMonthTotal*tempRate
+
+	state.totalCostToday = totalCostToday
+	state.totalCostWeek = totalCostWeek
+	state.totalCostMonth = totalCostMonth
+	app.removeSetting("costResetTwo")
+}
+
 def getFormat(type, myText="") {
 	if(type == "header") return "<div style='color:#660000;font-weight: bold'>${myText}</div>"
+	if(type == "red") return "<div style='color:#660000'>${myText}</div>"
+	if(type == "importantBold") return "<div style='color:#32a4be;font-weight: bold'>${myText}</div>"
 	if(type == "important") return "<div style='color:#32a4be'>${myText}</div>"
 	if(type == "lessImportant") return "<div style='color:green'>${myText}</div>"
 	if(type == "rateDisplay") return "<div style='color:green; text-align: center;font-weight: bold'>${myText}</div>"
