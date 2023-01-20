@@ -21,6 +21,7 @@
  * v0.4.0	RLE		Created "Advanced Options" page. 
  					Added user verification prompts for rate costs over 1.
 					Added reset and recalculate options.
+ * v0.4.1	RLE		Updated language for verification prompts. Fixed rounding for rate display on main page.
  */
  
 definition(
@@ -374,7 +375,7 @@ def advancedOptions() {
 				if(!costResetOne) input "costResetOne", "enum", title: getFormat("important","Recalculate all costs based on the current rate?")+getFormat("lessImportant","<br>Current rate is ${state.energyRate}")+getFormat("red","<br>There's no going back!"), options: ["Yes"], required: false, width: 4, submitOnChange: true
 				if(costResetOne) {
 					app.removeSetting("costResetOne")
-					input "costResetTwo", "enum", title: getFormat("importantBold","*** Are you sure? ***")+getFormat("lessImportant","<br>This selection will apply when you click the \"Next\" button.")+getFormat("red","<br>There's no going back!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
+					input "costResetTwo", "enum", title: getFormat("importantBold","*** Are you sure? ***")+getFormat("lessImportant","<br>Confirm your selection and click the \"Next\" button.")+getFormat("red","<br>There's no going back!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
 				}
 			}
 		}
@@ -383,7 +384,7 @@ def advancedOptions() {
 				if(!tableResetOne) input "tableResetOne", "enum", title: getFormat("important","What do you want to reset?")+getFormat("red","<br>There's no going back!"), options: ["Everything"], required: false, width: 4, submitOnChange: true
 				if(tableResetOne) {
 					app.removeSetting("tableResetOne")
-					input "tableResetTwo", "enum", title: getFormat("importantBold","*** Are you sure? ***")+getFormat("lessImportant","<br>This selection will apply when you click the \"Next\" button.")+getFormat("red","<br>There's no going back!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
+					input "tableResetTwo", "enum", title: getFormat("importantBold","*** Are you sure? ***")+getFormat("lessImportant","<br>Confirm your selection and click the \"Next\" button.")+getFormat("red","<br>There's no going back!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
 				}
 			}
 		}
