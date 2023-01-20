@@ -78,7 +78,7 @@ def mainPage() {
 					}
 					updated()
 
-					newEnergy = new BigDecimal(state.energyRate).setScale(2,BigDecimal.ROUND_HALF_UP)
+					newEnergy = state.energyRate
 					if(symbol) {rateDisplayFormat = symbol+newEnergy} else {rateDisplayFormat = newEnergy}
 					paragraph getFormat("rateDisplay","Current Pricing is ${rateDisplayFormat} per KWH")
 
