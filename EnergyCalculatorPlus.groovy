@@ -22,6 +22,7 @@
  					Added user verification prompts for rate costs over 1.
 					Added reset and recalculate options.
  * v0.4.1	RLE		Updated language for verification prompts. Fixed rounding for rate display on main page.
+ * v0.4.2	RLE		Added more reset options for devices.
  */
  
 definition(
@@ -46,8 +47,22 @@ def mainPage() {
 	if(state.energies == null) state.energies = [:]
 	if(state.energiesList == null) state.energiesList = []
 	if(!state.energyRate) state.energyRate = 0.1
-	if(tableResetTwo == "Yes") {nuclear()} else {app.removeSetting("tableResetTwo")}
+
+	//Reset Options
+	// app.removeSetting("resetOptionZero")
 	if(costResetTwo == "Yes") {recalc()} else {app.removeSetting("costResetTwo")}
+	if(confirmationResetTable == "Yes") {nuclear("everything")} else if(confirmationResetTable == "No") {
+		app.removeSetting("confirmationResetTable")
+		app.removeSetting("resetOptionZero")
+		}
+	if(confirmationResetDevice == "Yes") {nuclear("device")} else if(confirmationResetDevice == "No") {
+		app.removeSetting("confirmationResetDevice") 
+		app.removeSetting("resetOptionZero")
+		app.removeSetting("deviceResetSelection")
+		app.removeSetting("deviceOptionReset")
+		}
+
+	//Main page
 	dynamicPage(name: "mainPage", uninstall: true, install: true) {
 		section(getFormat("header","App Name"),hideable: true, hidden: true) {
             label title: getFormat("important","Enter a name for this app."), required:true, width: 4, submitOnChange: true
@@ -366,6 +381,15 @@ def pageSetRateSchedule() {
 
 def advancedOptions() {
 	dateList = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
+	resetStartOptions = ["Everything","A Device"]
+	
+	resetDeviceList = []
+	energies.each {dev ->
+	resetDeviceList.add(dev.displayName)}
+    resetDeviceList.sort()
+
+	deviceOptionList = ["Today","This Week","This Month"]
+
 	dynamicPage(name: "advancedOptions",title:getFormat("header","Advanced Options and Utilities"), uninstall: false, install: false, nextPage: "mainPage") {
 		section(getFormat("importantBold","Set the Monthly Reset Day"),hideable:true,hidden:false) {
 			input "monthResetDay", "enum", title: getFormat("important","What day of the month should monthly reset happen?")+getFormat("lessImportant","<br>Will be at 00:00:08 on the selected day.<br>No selection will default to the first day of the month."), options: dateList, required: false, width: 4, submitOnChange: true
@@ -375,19 +399,24 @@ def advancedOptions() {
 				if(!costResetOne) input "costResetOne", "enum", title: getFormat("important","Recalculate all costs based on the current rate?")+getFormat("lessImportant","<br>Current rate is ${state.energyRate}")+getFormat("red","<br>There's no going back!"), options: ["Yes"], required: false, width: 4, submitOnChange: true
 				if(costResetOne) {
 					app.removeSetting("costResetOne")
-					input "costResetTwo", "enum", title: getFormat("importantBold","*** Are you sure? ***")+getFormat("lessImportant","<br>Confirm your selection and click the \"Next\" button.")+getFormat("red","<br>There's no going back!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
+					input "costResetTwo", "enum", title: getFormat("important2Bold","*** Are you sure you want to reset ALL costs? ***")+getFormat("lessImportant","<br>Confirm your selection and click the \"Next\" button.")+getFormat("red","<br>There's no going back!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
 				}
 			}
 		}
-		section(getFormat("importantBold","Table Reset Options"),hideable:true,hidden:false) {
-			if(!tableResetTwo) {
-				if(!tableResetOne) input "tableResetOne", "enum", title: getFormat("important","What do you want to reset?")+getFormat("red","<br>There's no going back!"), options: ["Everything"], required: false, width: 4, submitOnChange: true
-				if(tableResetOne) {
-					app.removeSetting("tableResetOne")
-					input "tableResetTwo", "enum", title: getFormat("importantBold","*** Are you sure? ***")+getFormat("lessImportant","<br>Confirm your selection and click the \"Next\" button.")+getFormat("red","<br>There's no going back!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
+        section(getFormat("importantBold","Reset Options"),hideable:true,hidden:false) {
+            if(!resetOptionZero) input "resetOptionZero", "enum", title: getFormat("important","What type of item do you want to reset?"), options: resetStartOptions, required:false, width:4, submitOnChange:true
+            if(resetOptionZero == "Everything") {
+                input "confirmationResetTable", "enum", title: getFormat("important2Bold","*** Are you sure you want to reset EVERYTHING? ***")+getFormat("lessImportant","<br>Confirm your selection and click the \"Next\" button.")+getFormat("red","<br>There's no going back once complete!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
+			} else if(resetOptionZero == "A Device") {
+					if(!deviceResetSelection) input "deviceResetSelection", "enum", title: getFormat("important","Which device do you want to reset?")+getFormat("red","<br>There's no going back once complete!"), options: resetDeviceList, required: false, width: 4, submitOnChange: true
+					if(deviceResetSelection) {
+						if(!deviceOptionReset) input "deviceOptionReset", "enum", title: getFormat("important","Which part of ${deviceResetSelection} do you want to reset?")+getFormat("red","<br>There's no going back once complete!"), options: deviceOptionList, required: false, width: 4, submitOnChange: true
+						if(deviceOptionReset) {
+							if(!confirmationResetDevice) input "confirmationResetDevice", "enum", title: getFormat("important2Bold","*** Are you sure you want to reset ${deviceOptionReset} for ${deviceResetSelection}? ***")+getFormat("lessImportant","<br>Confirm your selection and click the \"Next\" button.")+getFormat("red","<br>There's no going back once complete!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
+						}
+					}
 				}
 			}
-		}
 		section(getFormat("importantBold","Logging Options"),hideable:true,hidden:false) {
 			input "debugOutput", "bool", title: "Enable debug logging?", defaultValue: false, displayDuringSetup: false, required: false, width: 2
 			input "traceOutput", "bool", title: "Enable trace logging?", defaultValue: false, displayDuringSetup: false, required: false, width: 2
@@ -522,9 +551,9 @@ String displayRateTable() {
 		"<th><b>Rate Cost</b></th></tr></thead>"
 	schedules.each {sched ->
 		scheds = state.schedules["$sched"]
-		String rateDow = scheds.rateDayOfWeek.toString().replace("[","").replace("]","").replace(" ","")
+		String rateDow = scheds.rateDayOfWeek.toString().replaceAll("[\\s\\[\\]]", "")
 		String rateTod = scheds.rateTimeOfDay
-		String rateMon = scheds.rateMonth.toString().replace("[","").replace("]","").replace(" ","")
+		String rateMon = scheds.rateMonth.toString().replaceAll("[\\s\\[\\]]", "")
 		String rateC = scheds.rateCost
 		String rateDay = rateDow ? buttonLink("noRateDay$sched", rateDow, "purple") : buttonLink("addRateDay$sched", "Select", "red")
 		String rateTime = rateTod ? buttonLink("noRateTime$sched", rateTod, "purple") : buttonLink("addRateTime$sched", "Select", "red")
@@ -715,7 +744,7 @@ void updateCost() {
 		if(tempCost > 0) {
 			logTrace "New cost for ${dev.displayName} is ${tempTodayCost}"
 		}
-		//Set variables for devices
+		//Get and update hub variables for devices
 		todayVar = device.todayVar
 		weekVar = device.weekVar
 		monthVar = device.monthVar
@@ -735,7 +764,8 @@ void updateCost() {
 	state.totalCostToday = totalCostToday
 	state.totalCostWeek = totalCostWeek
 	state.totalCostMonth = totalCostMonth
-	//Set variables for 'totals'
+
+	//Get and update hub variables for 'totals'
 	todayTotalVar = state.todayTotalVar
 	weekTotalVar = state.weekTotalVar
 	monthTotalVar = state.monthTotalVar
@@ -853,12 +883,47 @@ def resetForTest(yes) {
     }
 }
 
-def nuclear() {
-	energies.each {dev ->
-	state.energies["$dev.id"] = [todayEnergy: 0, dayStart: dev.currentEnergy ?: 0, lastEnergy: dev.currentEnergy ?: 0, var: "",thisWeekEnergy: 0,thisMonthEnergy: 0,lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0, thisMonthCost: 0]
+def nuclear(where) {
+	log.warn "Where is ${where}"
+	if(where == "everything") {
+		energies.each {dev ->
+		state.energies["$dev.id"] = [todayEnergy: 0, dayStart: dev.currentEnergy ?: 0, lastEnergy: dev.currentEnergy ?: 0, var: "",thisWeekEnergy: 0,thisMonthEnergy: 0,lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0, thisMonthCost: 0]
+		}
+		log.warn "It's all gone...I hope you're happy."
+		app.removeSetting("confirmationResetTable")
+		app.removeSetting("resetOptionZero")
+	} else if(where == "device") {
+		idResetDevice = 0
+		log.warn "We made it to nuclear! Resetting ${deviceOptionReset} for ${deviceResetSelection}."
+		energies.each {it -> if(it.displayName.contains("${deviceResetSelection}")) idResetDevice = it.id }
+		energies.each {it -> if(it.displayName.contains("${deviceResetSelection}")) currentEnergy = it.currentEnergy }
+		log.warn "Device ID is ${idResetDevice}"
+		deviceForReset = state.energies["$idResetDevice"]
+		switch(deviceOptionReset) {
+			case "Today":
+				log.warn "Resetting ${deviceForReset} today"
+				deviceForReset.todayEnergy = 0
+				deviceForReset.todayCost = 0
+				deviceForReset.dayStart = currentEnergy
+				break;
+			case "This Week":
+				log.warn "Resetting ${deviceForReset} this week"
+				deviceForReset.thisWeekEnergy = 0
+				deviceForReset.thisWeekCost = 0
+				deviceForReset.weekStart = 0
+				break;
+			case "This Month":
+				log.warn "Resetting ${deviceForReset} this month"
+				deviceForReset.thisMonthEnergy = 0
+				deviceForReset.thisMonthCost = 0
+				deviceForReset.monthStart = 0
+				break;
+		}
+		app.removeSetting("resetOptionZero")
+		app.removeSetting("deviceResetSelection")
+		app.removeSetting("deviceOptionReset")
+		app.removeSetting("confirmationResetDevice")
 	}
-	log.warn "It's all gone...I hope you're happy."
-	app.removeSetting("tableResetTwo")
 }
 
 def recalc() {
@@ -898,6 +963,7 @@ def getFormat(type, myText="") {
 	if(type == "red") return "<div style='color:#660000'>${myText}</div>"
 	if(type == "importantBold") return "<div style='color:#32a4be;font-weight: bold'>${myText}</div>"
 	if(type == "important") return "<div style='color:#32a4be'>${myText}</div>"
+	if(type == "important2Bold") return "<div style='color:#5a8200;font-weight: bold'>${myText}</div>"
 	if(type == "lessImportant") return "<div style='color:green'>${myText}</div>"
 	if(type == "rateDisplay") return "<div style='color:green; text-align: center;font-weight: bold'>${myText}</div>"
 }
