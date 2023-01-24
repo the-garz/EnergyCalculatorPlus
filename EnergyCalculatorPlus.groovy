@@ -23,6 +23,7 @@
 					Added reset and recalculate options.
  * v0.4.1	RLE		Updated language for verification prompts. Fixed rounding for rate display on main page.
  * v0.4.2	RLE		Added more reset options for devices.
+ * v0.4.3	RLE		Bug fix for reset menu. Fixed some logging.
  */
  
 definition(
@@ -48,19 +49,27 @@ def mainPage() {
 	if(state.energiesList == null) state.energiesList = []
 	if(!state.energyRate) state.energyRate = 0.1
 
-	//Reset Options
-	// app.removeSetting("resetOptionZero")
+	//Recalulate cost if selected from advanced options
 	if(costResetTwo == "Yes") {recalc()} else {app.removeSetting("costResetTwo")}
+	//Clear out input options if leftover from advanced options
+	if(!confirmationResetTable && !confirmationResetDevice) app.removeSetting("resetOptionZero")
+	if(resetOptionZero || deviceResetSelection || deviceOptionReset && !confirmationResetDevice) {
+		app.removeSetting("deviceResetSelection")
+		app.removeSetting("deviceOptionReset")
+	}
+	//Reset entire table if selected from advanced options
 	if(confirmationResetTable == "Yes") {nuclear("everything")} else if(confirmationResetTable == "No") {
 		app.removeSetting("confirmationResetTable")
 		app.removeSetting("resetOptionZero")
 		}
+	//Reset a particular period for a particular device if selected from advanced options
 	if(confirmationResetDevice == "Yes") {nuclear("device")} else if(confirmationResetDevice == "No") {
 		app.removeSetting("confirmationResetDevice") 
 		app.removeSetting("resetOptionZero")
 		app.removeSetting("deviceResetSelection")
 		app.removeSetting("deviceOptionReset")
 		}
+
 
 	//Main page
 	dynamicPage(name: "mainPage", uninstall: true, install: true) {
@@ -884,7 +893,7 @@ def resetForTest(yes) {
 }
 
 def nuclear(where) {
-	log.warn "Where is ${where}"
+	logTrace "Where is ${where}"
 	if(where == "everything") {
 		energies.each {dev ->
 		state.energies["$dev.id"] = [todayEnergy: 0, dayStart: dev.currentEnergy ?: 0, lastEnergy: dev.currentEnergy ?: 0, var: "",thisWeekEnergy: 0,thisMonthEnergy: 0,lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0, thisMonthCost: 0]
@@ -894,26 +903,25 @@ def nuclear(where) {
 		app.removeSetting("resetOptionZero")
 	} else if(where == "device") {
 		idResetDevice = 0
-		log.warn "We made it to nuclear! Resetting ${deviceOptionReset} for ${deviceResetSelection}."
 		energies.each {it -> if(it.displayName.contains("${deviceResetSelection}")) idResetDevice = it.id }
 		energies.each {it -> if(it.displayName.contains("${deviceResetSelection}")) currentEnergy = it.currentEnergy }
-		log.warn "Device ID is ${idResetDevice}"
+		logTrace "Device ID is ${idResetDevice} with current energy of ${currentEnergy}"
 		deviceForReset = state.energies["$idResetDevice"]
 		switch(deviceOptionReset) {
 			case "Today":
-				log.warn "Resetting ${deviceForReset} today"
+				log.warn "Resetting today's values for ${deviceResetSelection}"
 				deviceForReset.todayEnergy = 0
 				deviceForReset.todayCost = 0
 				deviceForReset.dayStart = currentEnergy
 				break;
 			case "This Week":
-				log.warn "Resetting ${deviceForReset} this week"
+				log.warn "Resetting this week's values for ${deviceResetSelection}"
 				deviceForReset.thisWeekEnergy = 0
 				deviceForReset.thisWeekCost = 0
 				deviceForReset.weekStart = 0
 				break;
 			case "This Month":
-				log.warn "Resetting ${deviceForReset} this month"
+				log.warn "Resetting this month's values for ${deviceResetSelection}"
 				deviceForReset.thisMonthEnergy = 0
 				deviceForReset.thisMonthCost = 0
 				deviceForReset.monthStart = 0
