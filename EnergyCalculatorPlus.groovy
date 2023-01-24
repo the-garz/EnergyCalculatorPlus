@@ -24,6 +24,8 @@
  * v0.4.1	RLE		Updated language for verification prompts. Fixed rounding for rate display on main page.
  * v0.4.2	RLE		Added more reset options for devices.
  * v0.4.3	RLE		Bug fix for reset menu. Fixed some logging.
+ * v0.4.4	RLE		Dynamic hide/unhide sections based on installation status.
+					Prep for next update (adding "yesterday" variables for energy use)
  */
  
 definition(
@@ -48,6 +50,7 @@ def mainPage() {
 	if(state.energies == null) state.energies = [:]
 	if(state.energiesList == null) state.energiesList = []
 	if(!state.energyRate) state.energyRate = 0.1
+	if(app.getInstallationState() != "COMPLETE") {hide=false} else {hide=true}
 
 	//Recalulate cost if selected from advanced options
 	if(costResetTwo == "Yes") {recalc()} else {app.removeSetting("costResetTwo")}
@@ -73,15 +76,18 @@ def mainPage() {
 
 	//Main page
 	dynamicPage(name: "mainPage", uninstall: true, install: true) {
-		section(getFormat("header","App Name"),hideable: true, hidden: true) {
+		section(getFormat("header","App Name"),hideable: true, hidden: hide) {
             label title: getFormat("important","Enter a name for this app."), required:true, width: 4, submitOnChange: true
         }
 
-		section(getFormat("header","Device Selection"),hideable: true, hidden: true) {
+		section(getFormat("header","Device Selection"),hideable: true, hidden: hide) {
+			if(!hide) paragraph getFormat("important2Bold","All values will start at 0 from the time that a device is added.")
 			input "energies", "capability.energyMeter", title: getFormat("important","Select Energy Devices to Measure Cost"), multiple: true, submitOnChange: true, width: 4
 			energies.each {dev ->
 					if(!state.energies["$dev.id"]) {
-						state.energies["$dev.id"] = [todayEnergy: 0, dayStart: dev.currentEnergy ?: 0, lastEnergy: dev.currentEnergy ?: 0, var: "",thisWeekEnergy: 0,thisMonthEnergy: 0,lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0, thisMonthCost: 0]
+						state.energies["$dev.id"] = [todayEnergy: 0, dayStart: dev.currentEnergy ?: 0, lastEnergy: dev.currentEnergy ?: 0, 
+							var: "",thisWeekEnergy: 0,thisMonthEnergy: 0,lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0, 
+							thisMonthCost: 0, yesterdayEnergy: 0]
 						state.energiesList += dev.id
 					}
 				}
@@ -234,8 +240,8 @@ def pageSetRateSchedule() {
 	hoursList = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
 	dayList = ["ALL","SUN","MON","TUE","WED","THU","FRI","SAT"]
 
-	dynamicPage(name: "pageSetRateSchedule",title:getFormat("header","Set a Rate Schedule or Static Rate"), uninstall: false, install: false, nextPage: "mainPage") {
-		section{
+	dynamicPage(name: "pageSetRateSchedule",title:getFormat("header","Configure Rate Options"), uninstall: false, install: false, nextPage: "mainPage") {
+		section(getFormat("importantBold","Use a Static Rate or Rate Schedule"),hideable:true,hidden:false) {
 			input "scheduleType", "bool", title: getFormat("important","Disabled: Use a static rate</br>Enabled: Use a rate schedule"), defaultValue: false, displayDuringSetup: false, required: false, width: 4, submitOnChange: true
 			}
 		if(scheduleType) {
@@ -817,8 +823,10 @@ void setRate(data) {
 
 void resetDaily() {
 	logDebug "Daily reset"
+	state.yesterdayTotal = state.todayTotalEnergy
 	energies.each {dev ->
 		device = state.energies["$dev.id"]
+		device.yesterdayEnergy = device.todayEnergy
 		device.dayStart = dev.currentEnergy ?: 0
 		device.todayCost = 0
 		device.weekStart = device.thisWeekEnergy
