@@ -27,6 +27,7 @@
  * v0.4.5	RLE		Dynamic hide/unhide sections based on installation status.
 					Prep for next update (adding "yesterday" variables for energy use)
  * v0.4.6	RLE		Hotfix for logic to clear input selections from the advanced menu.
+ * v0.4.7	RLE		Added option for static charges
  */
  
 definition(
@@ -51,6 +52,7 @@ def mainPage() {
 	if(state.energies == null) state.energies = [:]
 	if(state.energiesList == null) state.energiesList = []
 	if(!state.energyRate) state.energyRate = 0.1
+	if(!state.staticCharge) state.staticCharge = 0
 	if(app.getInstallationState() != "COMPLETE") {hide=false} else {hide=true}
 
 	//Recalulate cost if selected from advanced options
@@ -240,15 +242,20 @@ def pageSetRateSchedule() {
 	monthList = ["ALL","JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
 	hoursList = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
 	dayList = ["ALL","SUN","MON","TUE","WED","THU","FRI","SAT"]
+	newEnergy = state.energyRate
+	newStaticChargeDisplay = state.staticCharge ?: 0
+	if(symbol) {rateDisplayFormat = symbol+newEnergy; staticChargeDisplay = symbol+newStaticChargeDisplay} else {staticChargeDisplay = newStaticChargeDisplay}
 
 	dynamicPage(name: "pageSetRateSchedule",title:getFormat("header","Configure Rate Options"), uninstall: false, install: false, nextPage: "mainPage") {
 		section(getFormat("importantBold","Use a Static Rate or Rate Schedule"),hideable:true,hidden:false) {
-			input "scheduleType", "bool", title: getFormat("important","Disabled: Use a static rate</br>Enabled: Use a rate schedule"), defaultValue: false, displayDuringSetup: false, required: false, width: 4, submitOnChange: true
+			input "scheduleType", "bool", title: getFormat("important2","Disabled: Use a static rate</br>Enabled: Use a rate schedule"), defaultValue: false, displayDuringSetup: false, required: false, width: 4, submitOnChange: true
 			}
 		if(scheduleType) {
 			if(state.schedules == null) state.schedules = [:]
 			if(state.schedulesList == null) state.schedulesList = []
+			
 			section(getFormat("header","Set a dynamic rate schedule below")){
+				paragraph getFormat("lessImportant","Current rate is ${rateDisplayFormat} per KWH")
 				paragraph displayRateTable()
 				logDebug "Schedules are ${state.schedules}"
 				if(state.addNewRateSchedule) {
@@ -346,9 +353,6 @@ def pageSetRateSchedule() {
 				}
 			}
 			section(getFormat("importantBold","Manual Override"),hideable:true,hidden:true) {
-				newEnergy = state.energyRate
-				if(symbol) {rateDisplayFormat = symbol+newEnergy} else {rateDisplayFormat = newEnergy}
-				paragraph getFormat("lessImportant","Current rate is ${rateDisplayFormat} per KWH")
 				input "energyRateOverride", "string", title: getFormat("important","Enter a rate here to manually override the current rate:"),required: false, width: 4, submitOnChange: true
 				if(energyRateOverride) {
 					String pattern = /(\d*[0-9]\d*(\.\d+)?|0*\.\d*[0-9]\d*)/
@@ -357,7 +361,6 @@ def pageSetRateSchedule() {
 					log.warn "Manually overriding current rate of ${state.energyRate} with ${energyRateOverride}"
 					state.energyRate = energyRateOverride
 					app.removeSetting("energyRateOverride")
-
 				}
 			} 
 		} else {
@@ -388,6 +391,22 @@ def pageSetRateSchedule() {
 						}
 				}
 			}
+		}
+		section(getFormat("importantBold","Set Static Charges"),hideable:true,hidden:false) {
+			input "staticChargeFrequency", "bool", title: getFormat("important2","Disabled: Static charge is added daily</br>Enabled: Static charge is added monthly"), defaultValue: false, displayDuringSetup: false, required: false, width: 4, submitOnChange: true
+			if(staticChargeFrequency) {staticChargeRecurrence = "MONTHLY"; daysInCurrentMonth = java.time.LocalDate.now().lengthOfMonth()} else if(!staticChargeFrequency) {staticChargeRecurrence = "DAILY"}
+			paragraph getFormat("lessImportant","Current static charges are ${staticChargeDisplay} per day")
+			input "staticCharge", "string", title: getFormat("important","What are your <b>${staticChargeRecurrence}</b> static charges?"),required: false, width: 4, submitOnChange: true
+			if(staticCharge) {
+				String pattern = /(\d*[0-9]\d*(\.\d+)?|0*\.\d*[0-9]\d*)/
+				java.util.regex.Matcher matching = staticCharge =~ pattern
+				newStaticCharge = matching[0][1].toDouble()
+				if(newStaticCharge > 1) newStaticCharge = newStaticCharge.toBigDecimal().setScale(2,BigDecimal.ROUND_HALF_UP)
+				state.staticCharge = newStaticCharge
+				app.removeSetting("staticCharge")
+				paragraph "<script>{changeSubmit(this)}</script>"
+			}
+			if(staticChargeFrequency) {state.finalStaticCharge = state.staticCharge/daysInCurrentMonth} else if(!staticChargeFrequency) {state.finalStaticCharge = state.staticCharge}
 		}
 		section(getFormat("importantBold","Set the Currency Symbol"),hideable:true,hidden:true) {
 			input "symbol", "string", title: getFormat("important","What is your currency symbol?"),required: false, width: 4, submitOnChange: true
@@ -777,7 +796,7 @@ void updateCost() {
 			if(symbol) {setGlobalVar(monthVar, symbol+tempMonthCost.toString())} else {setGlobalVar(monthVar,tempMonthCost.toString())}
 		}
 	}
-	state.totalCostToday = totalCostToday
+	state.totalCostToday = totalCostToday + state.finalStaticCharge
 	state.totalCostWeek = totalCostWeek
 	state.totalCostMonth = totalCostMonth
 
@@ -980,6 +999,7 @@ def getFormat(type, myText="") {
 	if(type == "red") return "<div style='color:#660000'>${myText}</div>"
 	if(type == "importantBold") return "<div style='color:#32a4be;font-weight: bold'>${myText}</div>"
 	if(type == "important") return "<div style='color:#32a4be'>${myText}</div>"
+	if(type == "important2") return "<div style='color:#5a8200'>${myText}</div>"
 	if(type == "important2Bold") return "<div style='color:#5a8200;font-weight: bold'>${myText}</div>"
 	if(type == "lessImportant") return "<div style='color:green'>${myText}</div>"
 	if(type == "rateDisplay") return "<div style='color:green; text-align: center;font-weight: bold'>${myText}</div>"
