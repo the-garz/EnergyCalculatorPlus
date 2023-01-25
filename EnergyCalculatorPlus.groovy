@@ -24,8 +24,9 @@
  * v0.4.1	RLE		Updated language for verification prompts. Fixed rounding for rate display on main page.
  * v0.4.2	RLE		Added more reset options for devices.
  * v0.4.3	RLE		Bug fix for reset menu. Fixed some logging.
- * v0.4.4	RLE		Dynamic hide/unhide sections based on installation status.
+ * v0.4.5	RLE		Dynamic hide/unhide sections based on installation status.
 					Prep for next update (adding "yesterday" variables for energy use)
+ * v0.4.6	RLE		Hotfix for logic to clear input selections from the advanced menu.
  */
  
 definition(
@@ -56,7 +57,7 @@ def mainPage() {
 	if(costResetTwo == "Yes") {recalc()} else {app.removeSetting("costResetTwo")}
 	//Clear out input options if leftover from advanced options
 	if(!confirmationResetTable && !confirmationResetDevice) app.removeSetting("resetOptionZero")
-	if(resetOptionZero || deviceResetSelection || deviceOptionReset && !confirmationResetDevice) {
+	if((resetOptionZero || deviceResetSelection || deviceOptionReset) && !confirmationResetDevice) {
 		app.removeSetting("deviceResetSelection")
 		app.removeSetting("deviceOptionReset")
 	}
