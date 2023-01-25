@@ -53,6 +53,7 @@ def mainPage() {
 	if(state.energiesList == null) state.energiesList = []
 	if(!state.energyRate) state.energyRate = 0.1
 	if(!state.staticCharge) state.staticCharge = 0
+	if(!state.finalStaticCharge) state.finalStaticCharge = 0
 	if(app.getInstallationState() != "COMPLETE") {hide=false} else {hide=true}
 
 	//Recalulate cost if selected from advanced options
