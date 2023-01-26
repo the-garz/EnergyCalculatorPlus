@@ -28,6 +28,7 @@
 					Prep for next update (adding "yesterday" variables for energy use)
  * v0.4.6	RLE		Hotfix for logic to clear input selections from the advanced menu.
  * v0.4.7	RLE		Added option for static charges
+ * v0.4.8	RLE		Hotfix for static charges
  */
  
 definition(
@@ -53,7 +54,6 @@ def mainPage() {
 	if(state.energiesList == null) state.energiesList = []
 	if(!state.energyRate) state.energyRate = 0.1
 	if(!state.staticCharge) state.staticCharge = 0
-	if(!state.finalStaticCharge) state.finalStaticCharge = 0
 	if(app.getInstallationState() != "COMPLETE") {hide=false} else {hide=true}
 
 	//Recalulate cost if selected from advanced options
@@ -393,7 +393,7 @@ def pageSetRateSchedule() {
 				}
 			}
 		}
-		section(getFormat("importantBold","Set Static Charges"),hideable:true,hidden:false) {
+		section(getFormat("importantBold","Set Static Charges"),hideable:true,hidden:true) {
 			input "staticChargeFrequency", "bool", title: getFormat("important2","Disabled: Static charge is added daily</br>Enabled: Static charge is added monthly"), defaultValue: false, displayDuringSetup: false, required: false, width: 4, submitOnChange: true
 			if(staticChargeFrequency) {staticChargeRecurrence = "MONTHLY"; daysInCurrentMonth = java.time.LocalDate.now().lengthOfMonth()} else if(!staticChargeFrequency) {staticChargeRecurrence = "DAILY"}
 			paragraph getFormat("lessImportant","Current static charges are ${staticChargeDisplay} per day")
@@ -742,6 +742,7 @@ void updateDeviceEnergy() {
 
 void updateCost() {
 	logDebug "Start cost update"
+	if(!state.finalStaticCharge) state.finalStaticCharge = 0
 	def totalCostToday = 0
 	def totalCostWeek = 0
 	def totalCostMonth = 0
