@@ -864,7 +864,7 @@ void updateTotals() {
 	state.thisWeekTotal = thisWeekTotal
 	state.thisMonthTotal = thisMonthTotal
 
-	if(totalCostToday > 1000 || totalCostWeek > 1000 || totalCostMonth > 1000 || todayTotalEnergy > 1000 || thisWeekTotal > 1000 || thisMonthTotal > 1000) log.warn "${state}"
+	if(totalCostToday > 1000 || totalCostWeek > 1000 || totalCostMonth > 1000 || todayTotalEnergy > 1000 || thisWeekTotal > 1000 || thisMonthTotal > 1000) log.error "Report this in the community thread."; log.error "${state}"
 
 	//Get and update hub variables for 'totals'; if set
 	todayTotalVar = state.todayTotalVar
