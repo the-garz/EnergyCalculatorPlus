@@ -36,6 +36,7 @@
  * v0.5.3	RLE		Hotfix for error logging.
  * v0.5.4	RLE		Extra error logging for energy change value.
  * v0.5.5	RLE		Hotfix...again. Damn squiggling brackets.
+ * v0.5.6	RLE		Added code to run the update process at installation.
  */
  
 definition(
@@ -670,6 +671,9 @@ void installed() {
 	log.warn "Installed app"
 	state.onceReset = 2
 	initialize()
+	energies.each {dev ->
+		updateSingleDeviceEnergy(dev,dev.id)
+	}
 }
 
 void uninstalled() {
