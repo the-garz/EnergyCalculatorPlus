@@ -33,6 +33,8 @@
  * v0.5.1	RLE		Removed having a table refresh result in everything being recomputed (duplicated logic).
 					Added function for variable renaming.
  * v0.5.2	RLE		Force full table update after daily reset to ensure values are updated.
+ * v0.5.3	RLE		Hotfix for error logging.
+ * v0.5.4	RLE		Extra error logging for energy change value.
  */
  
 definition(
@@ -735,7 +737,7 @@ void updateSingleDeviceEnergy(devName,devId) {
 	}
 	energyChange = currentEnergy - lastEnergy
 	logTrace "Energy change for ${devName} is ${energyChange}"
-	if(energyChange > 2) log.warn "${state}"
+	if(energyChange > 4) log.error "Suspiciously hight energy change;please report this in the community thread." ; log.error "${state}"
 
 	device.lastEnergy = currentEnergy
 	device.energyChange = energyChange
@@ -864,7 +866,7 @@ void updateTotals() {
 	state.thisWeekTotal = thisWeekTotal
 	state.thisMonthTotal = thisMonthTotal
 
-	if(totalCostToday > 1000 || totalCostWeek > 1000 || totalCostMonth > 1000 || todayTotalEnergy > 1000 || thisWeekTotal > 1000 || thisMonthTotal > 1000) log.error "Report this in the community thread."; log.error "${state}"
+	if(totalCostToday > 1000 || totalCostWeek > 1000 || totalCostMonth > 1000 || todayTotalEnergy > 1000 || thisWeekTotal > 1000 || thisMonthTotal > 1000) log.error "Total cost is really high. Report this in the community thread."; log.error "${state}"
 
 	//Get and update hub variables for 'totals'; if set
 	todayTotalVar = state.todayTotalVar
