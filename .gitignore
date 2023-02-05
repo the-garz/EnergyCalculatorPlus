@@ -4,3 +4,5 @@ EnergyCalculatorPlus_testing.groovy
 temp.groovy
 .hubitat/metadata.json
 backup.groovy
+Notes.txt
+EnergyChildDevice.groovy
