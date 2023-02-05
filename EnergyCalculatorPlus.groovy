@@ -716,7 +716,7 @@ void updateSingleDeviceEnergy(devName,devId) {
 	currentEnergy = devName.currentEnergy ?: 0
 	currentEnergy1 = devName.currentValue("energy")
 	logTrace "${devName} currentEnergy is ${currentEnergy}"
-	if(currentEnergy != currentEnergy1) log.error "CurrentEnergy is ${currentEnergy} but currentEnergy1 is ${currentEnergy1}; please report this in the community thread."
+	if(currentEnergy != currentEnergy1) log.error "CurrentEnergy is ${currentEnergy} but currentEnergy1 is ${currentEnergy1}; please report this in the community thread."; log.error "${state}"
 
 	energyCheck = currentEnergy - start
 	logTrace "${devName} energyCheck is ${energyCheck}"
