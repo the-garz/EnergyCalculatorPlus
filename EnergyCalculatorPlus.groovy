@@ -35,6 +35,7 @@
  * v0.5.2	RLE		Force full table update after daily reset to ensure values are updated.
  * v0.5.3	RLE		Hotfix for error logging.
  * v0.5.4	RLE		Extra error logging for energy change value.
+ * v0.5.5	RLE		Hotfix...again. Damn squiggling brackets.
  */
  
 definition(
@@ -718,7 +719,7 @@ void updateSingleDeviceEnergy(devName,devId) {
 	currentEnergy = devName.currentEnergy ?: 0
 	currentEnergy1 = devName.currentValue("energy")
 	logTrace "${devName} currentEnergy is ${currentEnergy}"
-	if(currentEnergy != currentEnergy1) log.error "CurrentEnergy is ${currentEnergy} but currentEnergy1 is ${currentEnergy1}; please report this in the community thread."; log.error "${state}"
+	if(currentEnergy != currentEnergy1) {log.error "CurrentEnergy is ${currentEnergy} but currentEnergy1 is ${currentEnergy1}; please report this in the community thread."; log.error "${state}"}
 
 	energyCheck = currentEnergy - start
 	logTrace "${devName} energyCheck is ${energyCheck}"
@@ -737,7 +738,7 @@ void updateSingleDeviceEnergy(devName,devId) {
 	}
 	energyChange = currentEnergy - lastEnergy
 	logTrace "Energy change for ${devName} is ${energyChange}"
-	if(energyChange > 4) log.error "Suspiciously hight energy change;please report this in the community thread." ; log.error "${state}"
+	if(energyChange > 4) {log.error "Suspiciously hight energy change;please report this in the community thread." ; log.error "${state}"}
 
 	device.lastEnergy = currentEnergy
 	device.energyChange = energyChange
@@ -866,7 +867,7 @@ void updateTotals() {
 	state.thisWeekTotal = thisWeekTotal
 	state.thisMonthTotal = thisMonthTotal
 
-	if(totalCostToday > 1000 || totalCostWeek > 1000 || totalCostMonth > 1000 || todayTotalEnergy > 1000 || thisWeekTotal > 1000 || thisMonthTotal > 1000) log.error "Total cost is really high. Report this in the community thread."; log.error "${state}"
+	if(totalCostToday > 1000 || totalCostWeek > 1000 || totalCostMonth > 1000 || todayTotalEnergy > 1000 || thisWeekTotal > 1000 || thisMonthTotal > 1000) {log.error "Total cost is really high. Report this in the community thread."; log.error "${state}"}
 
 	//Get and update hub variables for 'totals'; if set
 	todayTotalVar = state.todayTotalVar
