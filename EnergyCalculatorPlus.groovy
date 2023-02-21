@@ -474,8 +474,10 @@ def advancedOptions() {
 String displayTable() {
 	logDebug "Table display called"
 	String str = "<script src='https://code.iconify.design/iconify-icon/1.0.0/iconify-icon.min.js'></script>"
+	str += "<link rel='stylesheet' type='text/css' href='https://cdn.datatables.net/v/bs/dt-1.11.3/datatables.min.css'/>"
+	str += "<script type='text/javascript' src='https://cdn.datatables.net/v/bs/dt-1.11.3/datatables.min.js'></script>"
 	str += "<style>.mdl-data-table tbody tr:hover{background-color:inherit} .tstat-col td,.tstat-col th { padding:8px 8px;text-align:center;font-size:12px} .tstat-col td {font-size:15px }" +
-		"</style><div style='overflow-x:auto'><table class='mdl-data-table tstat-col' style=';border:2px solid black'>" +
+		"</style><div style='overflow-x:auto'><table table id='main-table' class='mdl-data-table tstat-col' style=';border:2px solid black'>" +
 		"<thead><tr style='border-bottom:2px solid black'><th style='border-right:2px solid black'>Meter</th>" +
 		"<th>Energy Use Today</th>" +
 		"<th style='border-right:2px solid black'>Today's Cost</th>" +
@@ -484,7 +486,7 @@ String displayTable() {
 		"<th style='border-right:2px solid black'>Energy Use Last Week</th>" +
 		"<th>Energy Use This Month</th>" +
 		"<th>Energy Cost This Month</th>" +
-		"<th>Energy Use Last Month</th></tr></thead>"
+		"<th>Energy Use Last Month</th></tr></thead><tbody>"
 
 	energies.sort{it.displayName.toLowerCase()}.each {dev ->
 
@@ -541,6 +543,7 @@ String displayTable() {
 	if(symbol) {totalCostMonth = symbol+totalCostMonth.toString()}
 
 	//Build display string
+	str += "</tbody>"
     str += "<tr style='border-top:2px solid black'><td style='border-right:2px solid black'>Total</td>" +
 			"<td style='color:#be05f5'><b>$todayTotalEnergy</b></td>" +
 			"<td style='border-right:2px solid black; color:#be05f5' title='Money spent running $dev'><b>$totalCostToday</b></td>" +
@@ -551,18 +554,21 @@ String displayTable() {
 			"<td title='Money spent running $dev' style='color:#5a8200'><b>$totalCostMonth</b></td>" +
 			"<td style='color:#5a8200'><b>$lastMonthTotal</b></td></tr>"
 	str += "</table></div>"
+	str += "<script type='text/javascript'>\$(document).ready(function() { \$('#main-table').DataTable( {paging: false} ); } );</script>"
 	str
 }
 
 String displayVariableTable() {
 	logDebug "Variable table display called"
 	String str = "<script src='https://code.iconify.design/iconify-icon/1.0.0/iconify-icon.min.js'></script>"
+	str += "<link rel='stylesheet' type='text/css' href='https://cdn.datatables.net/v/bs/dt-1.11.3/datatables.min.css'/>"
+	str += "<script type='text/javascript' src='https://cdn.datatables.net/v/bs/dt-1.11.3/datatables.min.js'></script>"
 	str += "<style>.mdl-data-table tbody tr:hover{background-color:inherit} .tstat-col td,.tstat-col th { padding:8px 8px;text-align:center;font-size:12px} .tstat-col td {font-size:15px }" +
-		"</style><div style='overflow-x:auto'><table class='mdl-data-table tstat-col' style=';border:2px solid black'>" +
+		"</style><div style='overflow-x:auto'><table table id='variable-table' class='mdl-data-table tstat-col' style=';border:2px solid black'>" +
 		"<thead><tr style='border-bottom:2px solid black'><th style='border-right:2px solid black'>Meter</th>" +
 		"<th>Today's Cost Variable</th>" +
 		"<th>This Week Cost Variable</th>" +
-		"<th>This Month Cost Variable</th></tr></thead>"
+		"<th>This Month Cost Variable</th></tr></thead><tbody>"
 	energies.sort{it.displayName.toLowerCase()}.each {dev ->
 		device = state.energies["$dev.id"]
 		String todayVar = device.todayVar
@@ -577,6 +583,7 @@ String displayVariableTable() {
 		"<td title='${weekVar ? "Deselect $weekVar" : "Set a string hub variable to this weeks cost value"}'>$weeksVar</td>" +
 		"<td title='${monthVar ? "Deselect $monthVar" : "Set a string hub variable to this months cost value"}'>$monthsVar</td></tr>"
 	}
+	str += "</tbody>"
 	String todayTotalVar = state.todayTotalVar
 	String weekTotalVar = state.weekTotalVar
 	String monthTotalVar = state.monthTotalVar
@@ -588,6 +595,7 @@ String displayVariableTable() {
 		"<td title='${weekTotalVar ? "Deselect $weekTotalVar" : "Set a string hub variable to this weeks cost value"}'>$weeksTotalVar</td>" +
 		"<td title='${monthTotalVar ? "Deselect $monthTotalVar" : "Set a string hub variable to this months cost value"}'>$monthsTotalVar</td></tr>"
 	str += "</table></div>"
+	str += "<script type='text/javascript'>\$(document).ready(function() { \$('#variable-table').DataTable( {paging: false} ); } );</script>"
 	str
 }
 
