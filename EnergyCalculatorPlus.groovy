@@ -37,6 +37,8 @@
  * v0.5.4	RLE		Extra error logging for energy change value.
  * v0.5.5	RLE		Hotfix...again. Damn squiggling brackets.
  * v0.5.6	RLE		Added code to run the update process at installation.
+ * v0.6.0	RLE		Integrated Data Tables for the main and variable tables. Adds sorting and filtering enhancements.
+ * v0.6.1	RLE		Made 'info' logging toggleable. Cleaned up error logging.
  */
  
 definition(
@@ -465,6 +467,7 @@ def advancedOptions() {
 				}
 			}
 		section(getFormat("importantBold","Logging Options"),hideable:true,hidden:false) {
+			input "infoOutput", "bool", title: "Enable info logging?", defaultValue: true, displayDuringSetup: false, required: false, width: 2
 			input "debugOutput", "bool", title: "Enable debug logging?", defaultValue: false, displayDuringSetup: false, required: false, width: 2
 			input "traceOutput", "bool", title: "Enable trace logging?", defaultValue: false, displayDuringSetup: false, required: false, width: 2
 		}
@@ -731,12 +734,12 @@ void updateSingleDeviceEnergy(devName,devId) {
 	currentEnergy = devName.currentEnergy ?: 0
 	currentEnergy1 = devName.currentValue("energy")
 	logTrace "${devName} currentEnergy is ${currentEnergy}"
-	if(currentEnergy != currentEnergy1) {log.error "CurrentEnergy is ${currentEnergy} but currentEnergy1 is ${currentEnergy1}; please report this in the community thread."; log.error "${state}"}
+	//if(currentEnergy != currentEnergy1) {log.error "CurrentEnergy is ${currentEnergy} but currentEnergy1 is ${currentEnergy1}; please report this in the community thread."; log.error "${state}"}
 
 	energyCheck = currentEnergy - start
 	logTrace "${devName} energyCheck is ${energyCheck}"
 	if(energyCheck < 0) {
-		log.info "Energy for ${devName} is less than day start; energy was reset; setting day start and last energy to 0"
+		logInfo "Energy for ${devName} is less than day start; energy was reset; setting day start and last energy to 0"
 		device.dayStart = 0
 		device.lastEnergy = 0
 		todayEnergy = currentEnergy - device.dayStart
@@ -750,7 +753,7 @@ void updateSingleDeviceEnergy(devName,devId) {
 	}
 	energyChange = currentEnergy - lastEnergy
 	logTrace "Energy change for ${devName} is ${energyChange}"
-	if(energyChange > 4) {log.error "Suspiciously hight energy change;please report this in the community thread." ; log.error "${state}"}
+	//if(energyChange > 4) {log.error "Suspiciously high energy change; please report this in the community thread." ; log.error "${state}"}
 
 	device.lastEnergy = currentEnergy
 	device.energyChange = energyChange
@@ -797,7 +800,7 @@ void updateCost(devName,devId) {
 		tempCost = costCheck
 		} else {
 			tempCost = 0
-			log.info "Cost change for ${devName} is a negative; energy was reset"}
+			logInfo "Cost change for ${devName} is a negative; energy was reset"}
 	if(tempCost > 0) {
 		logTrace "Price change for ${devName} is ${tempEnergy} * ${tempRate} = ${tempCost}"
 	}
@@ -879,7 +882,7 @@ void updateTotals() {
 	state.thisWeekTotal = thisWeekTotal
 	state.thisMonthTotal = thisMonthTotal
 
-	if(totalCostToday > 1000 || totalCostWeek > 1000 || totalCostMonth > 1000 || todayTotalEnergy > 1000 || thisWeekTotal > 1000 || thisMonthTotal > 1000) {log.error "Total cost is really high. Report this in the community thread."; log.error "${state}"}
+	//if(totalCostToday > 1000 || totalCostWeek > 1000 || totalCostMonth > 1000 || todayTotalEnergy > 1000 || thisWeekTotal > 1000 || thisMonthTotal > 1000) {log.error "Total cost is really high. Report this in the community thread."; log.error "${state}"}
 
 	//Get and update hub variables for 'totals'; if set
 	todayTotalVar = state.todayTotalVar
@@ -1104,6 +1107,12 @@ void renameVariable(String oldName,String newName) {
 			}
 		}
 	}
+}
+
+def logInfo(msg) {
+    if (settings?.infoOutput) {
+		log.debug msg
+    }
 }
 
 def logDebug(msg) {
