@@ -558,6 +558,7 @@ String displayTable() {
 			"<td style='color:#5a8200'><b>$lastMonthTotal</b></td></tr>"
 	str += "</table></div>"
 	str += "<script type='text/javascript'>\$(document).ready(function() { \$('#main-table').DataTable( {paging: false} ); } );</script>"
+	writeFile("costTable.html", "$str")
 	str
 }
 
@@ -637,7 +638,6 @@ String displayRateTable() {
 		"<th style='border:none;color:#660000;font-size:1.125rem'><b><i class='he-arrow-left2' style='vertical-align:middle'></i>Click here to add or remove a rate schedule</b></th>" +
 		"</tr></thead></table>"
     str += "</div>"
-    
     return str
 }
 
@@ -1109,10 +1109,49 @@ void renameVariable(String oldName,String newName) {
 	}
 }
 
+<<<<<<< Updated upstream
 def logInfo(msg) {
     if (settings?.infoOutput) {
 		log.debug msg
     }
+=======
+Boolean writeFile(String fName, String fData) {
+    now = new Date()
+    String encodedString = "thebearmay$now".bytes.encodeBase64().toString();    
+    
+try {
+		def params = [
+			uri: "http://${location.hub.localIP}:8080",
+			path: '/hub/fileManager/upload',
+			query: [
+				'folder': '/'
+			],
+			headers: [
+				'Content-Type': "multipart/form-data; boundary=$encodedString"
+			],
+            body: """--${encodedString}
+Content-Disposition: form-data; name="uploadFile"; filename="${fName}"
+Content-Type: text/plain
+
+${fData}
+
+--${encodedString}
+Content-Disposition: form-data; name="folder"
+
+
+--${encodedString}--""",
+			timeout: 300,
+			ignoreSSLIssues: true
+		]
+		httpPost(params) { resp ->
+		}
+		return true
+	}
+	catch (e) {
+		log.error "Error writing file $fName: ${e}"
+	}
+	return false
+>>>>>>> Stashed changes
 }
 
 def logDebug(msg) {
