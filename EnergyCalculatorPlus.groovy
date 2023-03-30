@@ -472,7 +472,7 @@ def advancedOptions() {
 		section(getFormat("importantBold","HTML File"),hideable:true,hidden:false) {
 			input "htmlFile", "bool", title: "Create a local HTML file for dashboards?", defaultValue: false, displayDuringSetup: false, required: false, width: 2, submitOnChange:true
 			if(htmlFile) {
-				input "htmlUpdateInterval", "enum", title: getFormat("important","How often should the file be updated? (In Minutes)"), options: htmlInterval, required: false, width: 4, submitOnChange: false, defaultValue:5
+				input "htmlUpdateInterval", "enum", title: getFormat("important","How often should the file be updated? (In Minutes)"), options: htmlInterval, required: true, width: 4, submitOnChange: false, defaultValue:5
 				displayTable()
 				state.htmlName
 				paragraph "<a href='/local/$state.htmlName' target='_blank' title='Open HTML file of main dashboard'>Link for HTML File</a>"
