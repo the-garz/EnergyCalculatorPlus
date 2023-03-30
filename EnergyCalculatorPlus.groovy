@@ -39,8 +39,10 @@
  * v0.5.6	RLE		Added code to run the update process at installation.
  * v0.6.0	RLE		Integrated Data Tables for the main and variable tables. Adds sorting and filtering enhancements.
  * v0.6.1	RLE		Made 'info' logging toggleable. Cleaned up error logging.
+ * v0.7.0	RLE		Added options to create and update a local hub file to display the table on dashboards.
+					Thanks @thebearmay!
  */
- 
+
 definition(
     name: "Energy Cost Calculator",
     namespace: "rle",
@@ -430,6 +432,7 @@ def pageSetRateSchedule() {
 
 def advancedOptions() {
 	dateList = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
+	htmlInterval = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
 	resetStartOptions = ["Everything","A Device"]
 	
 	resetDeviceList = []
@@ -466,11 +469,23 @@ def advancedOptions() {
 					}
 				}
 			}
+		section(getFormat("importantBold","HTML File"),hideable:true,hidden:false) {
+			input "htmlFile", "bool", title: "Create a local HTML file for dashboards?", defaultValue: false, displayDuringSetup: false, required: false, width: 2, submitOnChange:true
+			if(htmlFile) {
+				input "htmlUpdateInterval", "enum", title: getFormat("important","How often should the file be updated? (In Minutes)"), options: htmlInterval, required: false, width: 4, submitOnChange: false, defaultValue:5
+				displayTable()
+				state.htmlName
+				paragraph "<a href='/local/$state.htmlName' target='_blank' title='Open HTML file of main dashboard'>Link for HTML File</a>"
+			} else if(!htmlFile) {
+				deleteHubFile(state.htmlName)
+			}
+		}
 		section(getFormat("importantBold","Logging Options"),hideable:true,hidden:false) {
 			input "infoOutput", "bool", title: "Enable info logging?", defaultValue: true, displayDuringSetup: false, required: false, width: 2
 			input "debugOutput", "bool", title: "Enable debug logging?", defaultValue: false, displayDuringSetup: false, required: false, width: 2
 			input "traceOutput", "bool", title: "Enable trace logging?", defaultValue: false, displayDuringSetup: false, required: false, width: 2
 		}
+		
 	}
 }
 
@@ -479,17 +494,18 @@ String displayTable() {
 	String str = "<script src='https://code.iconify.design/iconify-icon/1.0.0/iconify-icon.min.js'></script>"
 	str += "<link rel='stylesheet' type='text/css' href='https://cdn.datatables.net/v/bs/dt-1.11.3/datatables.min.css'/>"
 	str += "<script type='text/javascript' src='https://cdn.datatables.net/v/bs/dt-1.11.3/datatables.min.js'></script>"
-	str += "<style>.mdl-data-table tbody tr:hover{background-color:inherit} .tstat-col td,.tstat-col th { padding:8px 8px;text-align:center;font-size:12px} .tstat-col td {font-size:15px }" +
-		"</style><div style='overflow-x:auto'><table table id='main-table' class='mdl-data-table tstat-col' style=';border:2px solid black'>" +
-		"<thead><tr style='border-bottom:2px solid black'><th style='border-right:2px solid black'>Meter</th>" +
-		"<th>Energy Use Today</th>" +
-		"<th style='border-right:2px solid black'>Today's Cost</th>" +
-		"<th>Energy Use This Week</th>" +
-		"<th>Energy Cost This Week</th>" +
-		"<th style='border-right:2px solid black'>Energy Use Last Week</th>" +
-		"<th>Energy Use This Month</th>" +
-		"<th>Energy Cost This Month</th>" +
-		"<th>Energy Use Last Month</th></tr></thead><tbody>"
+	str += "<style>.mdl-data-table tbody tr:hover{background-color:inherit} .tstat-col td,.tstat-col th { padding:8px 8px;text-align:center;font-size:13px}"+
+		" .tstat-col td {font-size:15px } table {border-collapse: collapse;}" +
+		"</style><div style='overflow-x:auto'><table id='main-table' class='mdl-data-table tstat-col cell-border' style='border:3px solid black'>" +
+		"<thead><tr style='border-bottom:3px solid black'><th style='border-right:3px solid black;border-bottom:3px solid black'>Meter</th>" +
+		"<th style='border-bottom:3px solid black'>Energy Use Today</th>" +
+		"<th style='border-right:3px solid black;border-bottom:3px solid black'>Today's Cost</th>" +
+		"<th style='border-bottom:3px solid black'>Energy Use This Week</th>" +
+		"<th style='border-bottom:3px solid black'>Energy Cost This Week</th>" +
+		"<th style='border-right:3px solid black;border-bottom:3px solid black'>Energy Use Last Week</th>" +
+		"<th style='border-bottom:3px solid black'>Energy Use This Month</th>" +
+		"<th style='border-bottom:3px solid black'>Energy Cost This Month</th>" +
+		"<th style='border-bottom:3px solid black'>Energy Use Last Month</th></tr></thead><tbody>"
 
 	energies.sort{it.displayName.toLowerCase()}.each {dev ->
 
@@ -517,12 +533,12 @@ String displayTable() {
 
 		//Build display strings
 		String devLink = "<a href='/device/edit/$dev.id' target='_blank' title='Open Device Page for $dev'>$dev"
-		str += "<tr style='color:black'><td style='border-right:2px solid black'>$devLink</td>" +
+		str += "<tr style='color:black;border-top:1px solid black'><td style='border-right:3px solid black'>$devLink</td>" +
 			"<td style='color:#be05f5'><b>$todayEnergy</b></td>" +
-			"<td style='border-right:2px solid black; color:#be05f5' title='Money spent running ${dev}'><b>$todayCost</b></td>" +
+			"<td style='border-right:3px solid black;color:#be05f5' title='Money spent running ${dev}'><b>$todayCost</b></td>" +
 			"<td style='color:#007cbe'><b>$thisWeekEnergy</b></td>" +
 			"<td title='Money spent running ${dev}' style='color:#007cbe'><b>$thisWeekCost</b></td>" +
-			"<td style='border-right:2px solid black; color:#007cbe'><b>$lastWeekEnergy</b></td>" +
+			"<td style='border-right:3px solid black; color:#007cbe'><b>$lastWeekEnergy</b></td>" +
 			"<td style='color:#5a8200'><b>$thisMonthEnergy</b></td>" +
 			"<td title='Money spent running $dev' style='color:#5a8200'><b>$thisMonthCost</b></td>" +
 			"<td style='color:#5a8200'><b>$lastMonthEnergy</b></td></tr>"
@@ -547,18 +563,18 @@ String displayTable() {
 
 	//Build display string
 	str += "</tbody>"
-    str += "<tr style='border-top:2px solid black'><td style='border-right:2px solid black'>Total</td>" +
-			"<td style='color:#be05f5'><b>$todayTotalEnergy</b></td>" +
-			"<td style='border-right:2px solid black; color:#be05f5' title='Money spent running $dev'><b>$totalCostToday</b></td>" +
-			"<td style='color:#007cbe'><b>$thisWeekTotal</b></td>" +
-			"<td title='Money spent running $dev' style='color:#007cbe'><b>$totalCostWeek</b></td>" +
-			"<td style='border-right:2px solid black; color:#007cbe'><b>$lastWeekTotal</b></td>" +
-			"<td style='color:#5a8200'><b>$thisMonthTotal</b></td>" +
-			"<td title='Money spent running $dev' style='color:#5a8200'><b>$totalCostMonth</b></td>" +
-			"<td style='color:#5a8200'><b>$lastMonthTotal</b></td></tr>"
+    str += "<tr style='border-top:3px solid black'><td style='border-right:3px solid black;border-top:3px solid black'>Total</td>" +
+			"<td style='color:#be05f5;border-top:3px solid black'><b>$todayTotalEnergy</b></td>" +
+			"<td style='border-right:3px solid black;color:#be05f5;border-top:3px solid black' title='Money spent running $dev'><b>$totalCostToday</b></td>" +
+			"<td style='color:#007cbe;border-top:3px solid black'><b>$thisWeekTotal</b></td>" +
+			"<td title='Money spent running $dev' style='color:#007cbe;border-top:3px solid black'><b>$totalCostWeek</b></td>" +
+			"<td style='border-right:3px solid black;color:#007cbe;border-top:3px solid black'><b>$lastWeekTotal</b></td>" +
+			"<td style='color:#5a8200;border-top:3px solid black'><b>$thisMonthTotal</b></td>" +
+			"<td title='Money spent running $dev' style='color:#5a8200;border-top:3px solid black'><b>$totalCostMonth</b></td>" +
+			"<td style='color:#5a8200;border-top:3px solid black'><b>$lastMonthTotal</b></td></tr>"
 	str += "</table></div>"
 	str += "<script type='text/javascript'>\$(document).ready(function() { \$('#main-table').DataTable( {paging: false} ); } );</script>"
-	writeFile("costTable.html", "$str")
+	uploadHubFile(state.htmlName,str.getBytes())
 	str
 }
 
@@ -690,6 +706,7 @@ void installed() {
 void uninstalled() {
 	log.warn "Uninstalling app"
 	removeAllInUseGlobalVar()
+	deleteHubFile(state.htmlName)
 }
 
 void initialize() {
@@ -704,6 +721,14 @@ void initialize() {
 			}
 	subscribe(energies, "energy", energyHandler)
 	resetForTest()
+	tempHTMLName = "costTable_${app.getLabel()}.html".replaceAll("\\s+","_")
+	if(state.htmlName != tempHTMLName) {
+		log.warn "Updating HTML file name to match app name. Old name: $state.htmlName; new name: $tempHTMLName"
+		deleteHubFile(state.htmlName)
+		runIn(1,displayTable)
+	}
+	state.htmlName = tempHTMLName
+	if(htmlFile) {schedule("1 0/$htmlUpdateInterval * ? * * *",displayTable)}
 }
 
 void energyHandler(evt) {
@@ -1090,6 +1115,7 @@ def getFormat(type, myText="") {
 	if(type == "important2Bold") return "<div style='color:#5a8200;font-weight: bold'>${myText}</div>"
 	if(type == "lessImportant") return "<div style='color:green'>${myText}</div>"
 	if(type == "rateDisplay") return "<div style='color:green; text-align: center;font-weight: bold'>${myText}</div>"
+	if(type == "dull") return "<div style='color:black>${myText}</div>"
 }
 
 void renameVariable(String oldName,String newName) {
@@ -1109,49 +1135,10 @@ void renameVariable(String oldName,String newName) {
 	}
 }
 
-<<<<<<< Updated upstream
 def logInfo(msg) {
     if (settings?.infoOutput) {
 		log.debug msg
-    }
-=======
-Boolean writeFile(String fName, String fData) {
-    now = new Date()
-    String encodedString = "thebearmay$now".bytes.encodeBase64().toString();    
-    
-try {
-		def params = [
-			uri: "http://${location.hub.localIP}:8080",
-			path: '/hub/fileManager/upload',
-			query: [
-				'folder': '/'
-			],
-			headers: [
-				'Content-Type': "multipart/form-data; boundary=$encodedString"
-			],
-            body: """--${encodedString}
-Content-Disposition: form-data; name="uploadFile"; filename="${fName}"
-Content-Type: text/plain
-
-${fData}
-
---${encodedString}
-Content-Disposition: form-data; name="folder"
-
-
---${encodedString}--""",
-			timeout: 300,
-			ignoreSSLIssues: true
-		]
-		httpPost(params) { resp ->
-		}
-		return true
 	}
-	catch (e) {
-		log.error "Error writing file $fName: ${e}"
-	}
-	return false
->>>>>>> Stashed changes
 }
 
 def logDebug(msg) {
