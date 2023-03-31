@@ -43,7 +43,10 @@
 					Thanks @thebearmay!
  * v0.7.1	RLE		Made the update interval selection for updating the HTML table a required field to prevent null values.
  * v0.7.2	RLE		Set the background color to a static grey to ensure text is displaying properly.
+ * v0.7.3	RLE		Added advanced option to change the table background color.
  */
+
+import java.util.regex.*
 
 definition(
     name: "Energy Cost Calculator",
@@ -435,6 +438,7 @@ def pageSetRateSchedule() {
 def advancedOptions() {
 	dateList = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
 	htmlInterval = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
+	tableColors = ["Light gray","Pale yellow","Light blue","Beige","Light green","Provide Your Own"]
 	resetStartOptions = ["Everything","A Device"]
 	
 	resetDeviceList = []
@@ -446,11 +450,11 @@ def advancedOptions() {
 
 	dynamicPage(name: "advancedOptions",title:getFormat("header","Advanced Options and Utilities"), uninstall: false, install: false, nextPage: "mainPage") {
 		section(getFormat("importantBold","Set the Monthly Reset Day"),hideable:true,hidden:false) {
-			input "monthResetDay", "enum", title: getFormat("important","What day of the month should monthly reset happen?")+getFormat("lessImportant","<br>Will be at 00:00:08 on the selected day.<br>No selection will default to the first day of the month."), options: dateList, required: false, width: 4, submitOnChange: true
+			input "monthResetDay", "enum", title: getFormat("important2","What day of the month should monthly reset happen?")+getFormat("lessImportant","<br>Will be at 00:00:08 on the selected day.<br>No selection will default to the first day of the month."), options: dateList, required: false, width: 4, submitOnChange: true
 		}
 		section(getFormat("importantBold","Recalculate Cost"),hideable:true,hidden:false) {
 			if(!costResetTwo) {
-				if(!costResetOne) input "costResetOne", "enum", title: getFormat("important","Recalculate all costs based on the current rate?")+getFormat("lessImportant","<br>Current rate is ${state.energyRate}")+getFormat("red","<br>There's no going back!"), options: ["Yes"], required: false, width: 4, submitOnChange: true
+				if(!costResetOne) input "costResetOne", "enum", title: getFormat("important2","Recalculate all costs based on the current rate?")+getFormat("lessImportant","<br>Current rate is ${state.energyRate}")+getFormat("red","<br>There's no going back!"), options: ["Yes"], required: false, width: 4, submitOnChange: true
 				if(costResetOne) {
 					app.removeSetting("costResetOne")
 					input "costResetTwo", "enum", title: getFormat("important2Bold","*** Are you sure you want to reset ALL costs? ***")+getFormat("lessImportant","<br>Confirm your selection and click the \"Next\" button.")+getFormat("red","<br>There's no going back!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
@@ -458,7 +462,7 @@ def advancedOptions() {
 			}
 		}
         section(getFormat("importantBold","Reset Options"),hideable:true,hidden:false) {
-            if(!resetOptionZero) input "resetOptionZero", "enum", title: getFormat("important","What type of item do you want to reset?"), options: resetStartOptions, required:false, width:4, submitOnChange:true
+            if(!resetOptionZero) input "resetOptionZero", "enum", title: getFormat("important2","What type of item do you want to reset?"), options: resetStartOptions, required:false, width:4, submitOnChange:true
             if(resetOptionZero == "Everything") {
                 input "confirmationResetTable", "enum", title: getFormat("important2Bold","*** Are you sure you want to reset EVERYTHING? ***")+getFormat("lessImportant","<br>Confirm your selection and click the \"Next\" button.")+getFormat("red","<br>There's no going back once complete!"), options: ["Yes","No"], required: false, width: 4, submitOnChange: false
 			} else if(resetOptionZero == "A Device") {
@@ -472,14 +476,38 @@ def advancedOptions() {
 				}
 			}
 		section(getFormat("importantBold","HTML File"),hideable:true,hidden:false) {
-			input "htmlFile", "bool", title: "Create a local HTML file for dashboards?", defaultValue: false, displayDuringSetup: false, required: false, width: 2, submitOnChange:true
+			input "htmlFile", "bool", title: getFormat("important2","Create a local HTML file for dashboards?"), defaultValue: false, displayDuringSetup: false, required: false, width: 2, submitOnChange:true
 			if(htmlFile) {
-				input "htmlUpdateInterval", "enum", title: getFormat("important","How often should the file be updated? (In Minutes)"), options: htmlInterval, required: true, width: 4, submitOnChange: false, defaultValue:5
+				paragraph ""
+				input "htmlUpdateInterval", "enum", title: getFormat("lessImportant","How often should the file be updated? (In Minutes)"), options: htmlInterval, required: true, width: 4, submitOnChange: false, defaultValue:5
 				displayTable()
 				state.htmlName
 				paragraph "<a href='/local/$state.htmlName' target='_blank' title='Open HTML file of main dashboard'>Link for HTML File</a>"
 			} else if(!htmlFile) {
 				deleteHubFile(state.htmlName)
+			}
+		}
+		section(getFormat("importantBold","Color Options"),hideable:true,hidden:false) {
+			input "editTableBg", "bool", title: getFormat("important2","Change the table background color?"), defaultValue: false, displayDuringSetup: false, required: false, width: 2, submitOnChange:true
+			if(editTableBg) {
+				paragraph ""
+
+				input "tableColorSelect", "enum", title: getFormat("lessImportant","Select a background color for the table"), options: tableColors, required: true, width: 4, submitOnChange: true, defaultValue: "Light gray"
+				if(tableColorSelect == "Provide Your Own") {
+					paragraph ""
+
+
+					input "customerTableBg", "string", title: getFormat("red","Enter the hex value for your color (including the # symbol)"), required: false, submitOnChange: true, width: 4
+					if(customerTableBg) {
+						if(isHexCode(customerTableBg)) {
+							state.tableBg = customerTableBg
+						} else {
+							paragraph "<div style='color:red; text-align: center;font-weight: bold'>INVALID HEX CODE!!!</div>"
+						}
+					}
+				} else {
+					setTableBgColor("$tableColorSelect")
+				}
 			}
 		}
 		section(getFormat("importantBold","Logging Options"),hideable:true,hidden:false) {
@@ -498,8 +526,8 @@ String displayTable() {
 	str += "<script type='text/javascript' src='https://cdn.datatables.net/v/bs/dt-1.11.3/datatables.min.js'></script>"
 	str += "<style>.mdl-data-table tbody tr:hover{background-color:inherit} .tstat-col td,.tstat-col th { padding:8px 8px;text-align:center;font-size:13px}"+
 		" .tstat-col td {font-size:15px } table {border-collapse: collapse;}" +
-		"</style><div style='overflow-x:auto'><table id='main-table' class='mdl-data-table tstat-col cell-border' style='border:3px solid black; background-color:#D3D3D3'>" +
-		"<thead><tr style='border-bottom:3px solid black'><th style='border-right:3px solid black;border-bottom:3px solid black'>Meter</th>" +
+		"</style><div style='overflow-x:auto'><table id='main-table' class='mdl-data-table tstat-col cell-border' style='border:3px solid black; background-color:$state.tableBg'>" +
+		"<thead><tr style='border-bottom:3px solid black; color:red'><th style='border-right:3px solid black;border-bottom:3px solid black;color:green'>Meter</th>" +
 		"<th style='border-bottom:3px solid black'>Energy Use Today</th>" +
 		"<th style='border-right:3px solid black;border-bottom:3px solid black'>Today's Cost</th>" +
 		"<th style='border-bottom:3px solid black'>Energy Use This Week</th>" +
@@ -1111,6 +1139,7 @@ def recalc() {
 def getFormat(type, myText="") {
 	if(type == "header") return "<div style='color:#660000;font-weight: bold'>${myText}</div>"
 	if(type == "red") return "<div style='color:#660000'>${myText}</div>"
+	if(type == "redBold") return "<div style='color:#660000;font-weight: bold;text-align: center;'>${myText}</div>"
 	if(type == "importantBold") return "<div style='color:#32a4be;font-weight: bold'>${myText}</div>"
 	if(type == "important") return "<div style='color:#32a4be'>${myText}</div>"
 	if(type == "important2") return "<div style='color:#5a8200'>${myText}</div>"
@@ -1119,6 +1148,33 @@ def getFormat(type, myText="") {
 	if(type == "rateDisplay") return "<div style='color:green; text-align: center;font-weight: bold'>${myText}</div>"
 	if(type == "dull") return "<div style='color:black>${myText}</div>"
 }
+
+def setTableBgColor(String tableColors) {
+	switch(tableColors) {
+		case "Light gray":
+			state.tableBg = "#D3D3D3"
+			break
+		case "Pale yellow":
+			state.tableBg = "#FFFFCC"
+			break
+		case "Light blue":
+			state.tableBg = "#E6F3FF"
+			break
+		case "Beige":
+			state.tableBg = "#F5F5DC"
+			break
+		case "Light green":
+			state.tableBg = "#CCFFCC"
+			break
+		default:
+		state.tableBg = "#FFFFFF"
+	}
+}
+
+def isHexCode(String str) {
+	Pattern pattern = Pattern.compile("^#[A-Fa-f0-9]{6}")
+	return pattern.matcher(str).matches()
+	}
 
 void renameVariable(String oldName,String newName) {
 	log.warn "Renaming variable from ${oldName} to ${newName}"
