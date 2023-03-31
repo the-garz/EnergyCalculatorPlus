@@ -496,7 +496,7 @@ def advancedOptions() {
 				input "tableColorSelect", "enum", title: getFormat("lessImportant","Select a background color for the table"), options: tableColors, required: true, width: 4, submitOnChange: true, defaultValue: "Light gray"
 				if(tableColorSelect == "Provide Your Own") {
 					paragraph ""
-					input "customerTableBg", "string", title: getFormat("red","Enter the hex value for your color (including the # symbol)"), required: false, submitOnChange: true, width: 4
+					input "customerTableBg", "string", title: getFormat("red","Enter the hex value for your color (numbers/letters only)"), required: false, submitOnChange: true, width: 4
 					if(customerTableBg) {
 						if(isHexCode(customerTableBg)) {
 							state.tableBg = "#"+customerTableBg
