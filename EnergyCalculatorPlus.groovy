@@ -41,6 +41,8 @@
  * v0.6.1	RLE		Made 'info' logging toggleable. Cleaned up error logging.
  * v0.7.0	RLE		Added options to create and update a local hub file to display the table on dashboards.
 					Thanks @thebearmay!
+ * v0.7.1	RLE		Made the update interval selection for updating the HTML table a required field to prevent null values.
+ * v0.7.2	RLE		Set the background color to a static grey to ensure text is displaying properly.
  */
 
 definition(
@@ -496,7 +498,7 @@ String displayTable() {
 	str += "<script type='text/javascript' src='https://cdn.datatables.net/v/bs/dt-1.11.3/datatables.min.js'></script>"
 	str += "<style>.mdl-data-table tbody tr:hover{background-color:inherit} .tstat-col td,.tstat-col th { padding:8px 8px;text-align:center;font-size:13px}"+
 		" .tstat-col td {font-size:15px } table {border-collapse: collapse;}" +
-		"</style><div style='overflow-x:auto'><table id='main-table' class='mdl-data-table tstat-col cell-border' style='border:3px solid black'>" +
+		"</style><div style='overflow-x:auto'><table id='main-table' class='mdl-data-table tstat-col cell-border' style='border:3px solid black; background-color:#D3D3D3'>" +
 		"<thead><tr style='border-bottom:3px solid black'><th style='border-right:3px solid black;border-bottom:3px solid black'>Meter</th>" +
 		"<th style='border-bottom:3px solid black'>Energy Use Today</th>" +
 		"<th style='border-right:3px solid black;border-bottom:3px solid black'>Today's Cost</th>" +
