@@ -44,6 +44,7 @@
  * v0.7.1	RLE		Made the update interval selection for updating the HTML table a required field to prevent null values.
  * v0.7.2	RLE		Set the background color to a static grey to ensure text is displaying properly.
  * v0.7.3	RLE		Added advanced option to change the table background color.
+ * v0.7.4	RLE		Removed the requirement to have the # when setting the hex code for the table background.
  */
 
 import java.util.regex.*
@@ -495,12 +496,10 @@ def advancedOptions() {
 				input "tableColorSelect", "enum", title: getFormat("lessImportant","Select a background color for the table"), options: tableColors, required: true, width: 4, submitOnChange: true, defaultValue: "Light gray"
 				if(tableColorSelect == "Provide Your Own") {
 					paragraph ""
-
-
 					input "customerTableBg", "string", title: getFormat("red","Enter the hex value for your color (including the # symbol)"), required: false, submitOnChange: true, width: 4
 					if(customerTableBg) {
 						if(isHexCode(customerTableBg)) {
-							state.tableBg = customerTableBg
+							state.tableBg = "#"+customerTableBg
 						} else {
 							paragraph "<div style='color:red; text-align: center;font-weight: bold'>INVALID HEX CODE!!!</div>"
 						}
@@ -527,7 +526,7 @@ String displayTable() {
 	str += "<style>.mdl-data-table tbody tr:hover{background-color:inherit} .tstat-col td,.tstat-col th { padding:8px 8px;text-align:center;font-size:13px}"+
 		" .tstat-col td {font-size:15px } table {border-collapse: collapse;}" +
 		"</style><div style='overflow-x:auto'><table id='main-table' class='mdl-data-table tstat-col cell-border' style='border:3px solid black; background-color:$state.tableBg'>" +
-		"<thead><tr style='border-bottom:3px solid black; color:red'><th style='border-right:3px solid black;border-bottom:3px solid black;color:green'>Meter</th>" +
+		"<thead><tr style='border-bottom:3px solid black'><th style='border-right:3px solid black;border-bottom:3px solid black'>Meter</th>" +
 		"<th style='border-bottom:3px solid black'>Energy Use Today</th>" +
 		"<th style='border-right:3px solid black;border-bottom:3px solid black'>Today's Cost</th>" +
 		"<th style='border-bottom:3px solid black'>Energy Use This Week</th>" +
@@ -1172,7 +1171,7 @@ def setTableBgColor(String tableColors) {
 }
 
 def isHexCode(String str) {
-	Pattern pattern = Pattern.compile("^#[A-Fa-f0-9]{6}")
+	Pattern pattern = Pattern.compile("^[A-Fa-f0-9]{6}")
 	return pattern.matcher(str).matches()
 	}
 
