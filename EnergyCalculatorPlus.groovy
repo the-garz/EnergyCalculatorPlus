@@ -45,6 +45,8 @@
  * v0.7.2	RLE		Set the background color to a static grey to ensure text is displaying properly.
  * v0.7.3	RLE		Added advanced option to change the table background color.
  * v0.7.4	RLE		Removed the requirement to have the # when setting the hex code for the table background.
+ * v0.7.5	RLE		Language fix on app page
+ * v0.7.6	RLE		Added logic to discard erroneous energy reportings over 500 kWh. Unify menu color scheme.
  */
 
 import java.util.regex.*
@@ -157,7 +159,7 @@ def pageSelectVariables() {
 	dynamicPage(name: "pageSelectVariables", uninstall: false, install: false, nextPage: "mainPage") {
 		section(getFormat("header","Link the Cost Value to a Hub Variable")) {
 			if(energies)
-					paragraph getFormat("important","The selected variable MUST be of type \"String\"")
+					paragraph getFormat("important2","The selected variable MUST be of type \"String\"")
 					paragraph displayVariableTable()
 
 			//Set variables using button inputs
@@ -375,7 +377,7 @@ def pageSetRateSchedule() {
 				}
 			}
 			section(getFormat("importantBold","Manual Override"),hideable:true,hidden:true) {
-				input "energyRateOverride", "string", title: getFormat("important","Enter a rate here to manually override the current rate:"),required: false, width: 4, submitOnChange: true
+				input "energyRateOverride", "string", title: getFormat("important2","Enter a rate here to manually override the current rate:"),required: false, width: 4, submitOnChange: true
 				if(energyRateOverride) {
 					String pattern = /(\d*[0-9]\d*(\.\d+)?|0*\.\d*[0-9]\d*)/
 					java.util.regex.Matcher matching = energyRateOverride =~ pattern
@@ -418,7 +420,7 @@ def pageSetRateSchedule() {
 			input "staticChargeFrequency", "bool", title: getFormat("important2","Disabled: Static charge is added daily</br>Enabled: Static charge is added monthly"), defaultValue: false, displayDuringSetup: false, required: false, width: 4, submitOnChange: true
 			if(staticChargeFrequency) {staticChargeRecurrence = "MONTHLY"; daysInCurrentMonth = java.time.LocalDate.now().lengthOfMonth()} else if(!staticChargeFrequency) {staticChargeRecurrence = "DAILY"}
 			paragraph getFormat("lessImportant","Current static charges are ${staticChargeDisplay} per day")
-			input "staticCharge", "string", title: getFormat("important","What are your <b>${staticChargeRecurrence}</b> static charges?"),required: false, width: 4, submitOnChange: true
+			input "staticCharge", "string", title: getFormat("red","What are your <b>${staticChargeRecurrence}</b> static charges?"),required: false, width: 4, submitOnChange: true
 			if(staticCharge) {
 				String pattern = /(\d*[0-9]\d*(\.\d+)?|0*\.\d*[0-9]\d*)/
 				java.util.regex.Matcher matching = staticCharge =~ pattern
@@ -431,7 +433,7 @@ def pageSetRateSchedule() {
 			if(staticChargeFrequency) {state.finalStaticCharge = state.staticCharge/daysInCurrentMonth} else if(!staticChargeFrequency) {state.finalStaticCharge = state.staticCharge}
 		}
 		section(getFormat("importantBold","Set the Currency Symbol"),hideable:true,hidden:true) {
-			input "symbol", "string", title: getFormat("important","What is your currency symbol?"),required: false, width: 4, submitOnChange: true
+			input "symbol", "string", title: getFormat("important2","What is your currency symbol?"),required: false, width: 4, submitOnChange: true
 		}
 	}
 }
@@ -769,6 +771,11 @@ void energyHandler(evt) {
 
 void updateSingleDeviceEnergy(devName,devId) {
 	logDebug "Start energy update for ${devName}:${devId}"
+	currentEnergy = devName.currentEnergy ?: 0
+	if(currentEnergy > 500) {
+		log.warn "Probable erroneous energy report; if this is a valid report, please report this in the community thread."
+		return}
+	currentEnergy1 = devName.currentValue("energy")
 	todayTotalEnergy = state.todayTotalEnergy
 	thisWeekTotal = state.thisWeekTotal
 	thisMonthTotal = state.thisMonthTotal
@@ -785,8 +792,7 @@ void updateSingleDeviceEnergy(devName,devId) {
 	logTrace "${devName} thisMonthEnergy is ${thisMonth}"
 	thisMonthStart = device.monthStart ?: 0
 	logTrace "${devName} monthStart is ${thisMonthStart}"
-	currentEnergy = devName.currentEnergy ?: 0
-	currentEnergy1 = devName.currentValue("energy")
+
 	logTrace "${devName} currentEnergy is ${currentEnergy}"
 	//if(currentEnergy != currentEnergy1) {log.error "CurrentEnergy is ${currentEnergy} but currentEnergy1 is ${currentEnergy1}; please report this in the community thread."; log.error "${state}"}
 
