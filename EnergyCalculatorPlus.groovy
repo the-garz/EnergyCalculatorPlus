@@ -771,11 +771,7 @@ void energyHandler(evt) {
 
 void updateSingleDeviceEnergy(devName,devId) {
 	logDebug "Start energy update for ${devName}:${devId}"
-	currentEnergy = devName.currentEnergy ?: 0
-	if(currentEnergy > 500) {
-		log.warn "Probable erroneous energy report; if this is a valid report, please report this in the community thread."
-		return}
-	currentEnergy1 = devName.currentValue("energy")
+
 	todayTotalEnergy = state.todayTotalEnergy
 	thisWeekTotal = state.thisWeekTotal
 	thisMonthTotal = state.thisMonthTotal
@@ -793,11 +789,17 @@ void updateSingleDeviceEnergy(devName,devId) {
 	thisMonthStart = device.monthStart ?: 0
 	logTrace "${devName} monthStart is ${thisMonthStart}"
 
+	currentEnergy = devName.currentEnergy ?: 0
+	currentEnergy1 = devName.currentValue("energy")
 	logTrace "${devName} currentEnergy is ${currentEnergy}"
 	//if(currentEnergy != currentEnergy1) {log.error "CurrentEnergy is ${currentEnergy} but currentEnergy1 is ${currentEnergy1}; please report this in the community thread."; log.error "${state}"}
 
 	energyCheck = currentEnergy - start
 	logTrace "${devName} energyCheck is ${energyCheck}"
+	if(energyCheck > 500) {
+		log.warn "Probable erroneous energy report; if this is a valid report, please report this in the community thread."
+		return
+		}
 	if(energyCheck < 0) {
 		logInfo "Energy for ${devName} is less than day start; energy was reset; setting day start and last energy to 0"
 		device.dayStart = 0
