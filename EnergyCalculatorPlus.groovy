@@ -47,6 +47,7 @@
  * v0.7.4	RLE		Removed the requirement to have the # when setting the hex code for the table background.
  * v0.7.5	RLE		Language fix on app page
  * v0.7.6	RLE		Added logic to discard erroneous energy reportings over 500 kWh. Unify menu color scheme.
+ * v0.7.7	GG 		Added tracking for the previous month's energy cost. The generated HTML table now includes a 'Last Month Cost' column for individual devices and the total.
  */
 
 import java.util.regex.*
@@ -110,8 +111,8 @@ def mainPage() {
 			energies.each {dev ->
 					if(!state.energies["$dev.id"]) {
 						state.energies["$dev.id"] = [todayEnergy: 0, dayStart: dev.currentEnergy ?: 0, lastEnergy: dev.currentEnergy ?: 0,
-							thisWeekEnergy: 0,thisMonthEnergy: 0,lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0, 
-							thisMonthCost: 0, yesterdayEnergy: 0]
+						thisWeekEnergy: 0,thisMonthEnergy: 0,lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0,
+						thisMonthCost: 0, yesterdayEnergy: 0, lastMonthCost: 0]
 						state.energiesList += dev.id
 					}
 				}
@@ -536,7 +537,8 @@ String displayTable() {
 		"<th style='border-right:3px solid black;border-bottom:3px solid black'>Energy Use Last Week</th>" +
 		"<th style='border-bottom:3px solid black'>Energy Use This Month</th>" +
 		"<th style='border-bottom:3px solid black'>Energy Cost This Month</th>" +
-		"<th style='border-bottom:3px solid black'>Energy Use Last Month</th></tr></thead><tbody>"
+		"<th style='border-bottom:3px solid black'>Energy Use Last Month</th>" +
+		"<th style='border-bottom:3px solid black'>Energy Cost Last Month</th></tr></thead><tbody>"
 
 	energies.sort{it.displayName.toLowerCase()}.each {dev ->
 
@@ -572,7 +574,8 @@ String displayTable() {
 			"<td style='border-right:3px solid black; color:#007cbe'><b>$lastWeekEnergy</b></td>" +
 			"<td style='color:#5a8200'><b>$thisMonthEnergy</b></td>" +
 			"<td title='Money spent running $dev' style='color:#5a8200'><b>$thisMonthCost</b></td>" +
-			"<td style='color:#5a8200'><b>$lastMonthEnergy</b></td></tr>"
+			"<td style='color:#5a8200'><b>$lastMonthEnergy</b></td>" +
+			"<td style='color:#5a8200' title='Last month money spent running $dev'><b>$lastMonthCost</b></td></tr>"
 	}
 	//Get total energy values
 	todayTotalEnergy = state.todayTotalEnergy.toDouble().round(3)
@@ -602,7 +605,8 @@ String displayTable() {
 			"<td style='border-right:3px solid black;color:#007cbe;border-top:3px solid black'><b>$lastWeekTotal</b></td>" +
 			"<td style='color:#5a8200;border-top:3px solid black'><b>$thisMonthTotal</b></td>" +
 			"<td title='Money spent running $dev' style='color:#5a8200;border-top:3px solid black'><b>$totalCostMonth</b></td>" +
-			"<td style='color:#5a8200;border-top:3px solid black'><b>$lastMonthTotal</b></td></tr>"
+			"<td style='color:#5a8200;border-top:3px solid black'><b>$lastMonthTotal</b></td>" +
+			"<td title='Total money spent last month' style='color:#5a8200;border-top:3px solid black'><b>$totalLastMonthCost</b></td></tr>"
 	str += "</table></div>"
 	str += "<script type='text/javascript'>\$(document).ready(function() { \$('#main-table').DataTable( {paging: false} ); } );</script>"
 	uploadHubFile(state.htmlName,str.getBytes())
@@ -1017,15 +1021,17 @@ void resetWeekly() {
 
 void resetMonthly() {
 	logDebug "Monthly reset"
+    state.lastMonthTotalCost = state.totalCostMonth ?: 0
 	energies.each {dev ->
-	device = state.energies["$dev.id"]
-	device.lastMonthEnergy = 0
-	device.lastMonthEnergy = device.thisMonthEnergy
-	device.thisMonthEnergy = 0
-	device.thisMonthCost = 0
+	    device = state.energies["$dev.id"]
+	    device.lastMonthEnergy = device.thisMonthEnergy
+        device.lastMonthCost = device.thisMonthCost ?: 0
+	    device.thisMonthEnergy = 0
+	    device.thisMonthCost = 0
 	}
 	state.lastMonthTotal = state.thisMonthTotal
 	state.thisMonthTotal = 0
+    state.totalCostMonth = 0
 }
 
 def resetForTest(yes) {
@@ -1070,10 +1076,10 @@ def resetForTest(yes) {
 def nuclear(where) {
 	logTrace "Where is ${where}"
 	if(where == "everything") {
-		energies.each {dev ->
-		state.energies["$dev.id"] = [todayEnergy: 0, dayStart: dev.currentEnergy ?: 0, lastEnergy: dev.currentEnergy ?: 0, var: "",thisWeekEnergy: 0,thisMonthEnergy: 0,
-			lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0, thisMonthCost: 0]
-		}
+    energies.each {dev ->
+    state.energies["$dev.id"] = [todayEnergy: 0, dayStart: dev.currentEnergy ?: 0, lastEnergy: dev.currentEnergy ?: 0, var: "",thisWeekEnergy: 0,thisMonthEnergy: 0,
+        lastWeekEnergy: 0,lastMonthEnergy: 0,todayCost: 0, thisWeekCost: 0, thisMonthCost: 0, lastMonthCost: 0]
+    }
 		updateTotals()
 		log.warn "It's all gone...I hope you're happy."
 		app.removeSetting("confirmationResetTable")
